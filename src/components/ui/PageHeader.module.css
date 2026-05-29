@@ -1,43 +1,37 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
+
 .header {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: space-between;
+  margin-bottom: 2rem;
   gap: 1rem;
-  padding-bottom: 1.25rem;
-  border-bottom: 1px solid #e5e7eb;
-  margin-bottom: 1.5rem;
   flex-wrap: wrap;
 }
 
-.text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
+.left {}
 
 .title {
-  font-size: 1.375rem;
-  font-weight: 700;
-  color: #111827;
-  margin: 0;
-  line-height: 1.3;
+  font-size: 1.625rem;
+  font-weight: 800;
+  color: #2d3436;
+  letter-spacing: -0.02em;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.9), 0 -1px 0 rgba(0,0,0,0.05);
+  line-height: 1;
+  margin-bottom: 0.35rem;
 }
 
 .subtitle {
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: #4a5568;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .actions {
   display: flex;
-  gap: 0.5rem;
   align-items: center;
-  flex-wrap: wrap;
-}
-
-@media (max-width: 480px) {
-  .header { flex-direction: column; }
-  .actions { width: 100%; }
-  .actions > * { flex: 1; }
+  gap: 0.75rem;
 }

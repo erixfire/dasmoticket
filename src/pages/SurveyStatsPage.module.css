@@ -1,229 +1,134 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+:root {
+  --nm-bg: #e0e5ec; --nm-surface: #e0e5ec; --nm-shadow-dark: #babecc;
+  --nm-shadow-lite: #ffffff; --nm-text: #2d3436; --nm-muted: #4a5568;
+  --nm-accent: #ff4757; --nm-recessed: #d1d9e6;
+  --s-card: 8px 8px 16px var(--nm-shadow-dark), -8px -8px 16px var(--nm-shadow-lite);
+  --s-small: 5px 5px 10px var(--nm-shadow-dark), -5px -5px 10px var(--nm-shadow-lite);
+  --s-recess: inset 4px 4px 8px var(--nm-shadow-dark), inset -4px -4px 8px var(--nm-shadow-lite);
+  --s-float: 12px 12px 24px var(--nm-shadow-dark), -12px -12px 24px var(--nm-shadow-lite), inset 1px 1px 0 rgba(255,255,255,0.5);
+}
+
 .page {
-  padding: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
+  margin-left: 240px; padding: 2rem 2.25rem; min-height: 100vh;
+  background-color: var(--nm-bg);
+  background-image:
+    radial-gradient(ellipse at 5% 5%, rgba(255,255,255,0.38) 0%, transparent 55%),
+    linear-gradient(rgba(100,116,139,0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(100,116,139,0.045) 1px, transparent 1px);
+  background-size: auto, 40px 40px, 40px 40px;
 }
 
-/* ── CSS custom props for metric card colors ─────────────── */
-.page {
-  --metric-avg:          #6366f1;
-  --metric-avg-bg:       #6366f118;
-  --metric-total:        #6366f1;
-  --metric-total-bg:     #6366f118;
-  --metric-positive:     #22c55e;
-  --metric-positive-bg:  #22c55e18;
-  --metric-negative:     #ef4444;
-  --metric-negative-bg:  #ef444418;
-}
-
-/* ── Top Row ───────────────────────────────────────────── */
-.topRow {
+.statsGrid {
   display: grid;
-  grid-template-columns: 200px 1fr 220px;
-  gap: 1.25rem;
-  margin-bottom: 1.25rem;
-  align-items: stretch;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.125rem;
+  margin-bottom: 1.75rem;
 }
 
-/* ── Score card ────────────────────────────────────────── */
-.scoreCard {
-  background: linear-gradient(145deg, #1d4ed8, #3b82f6);
-  border-radius: 12px;
-  padding: 2rem 1.25rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  color: #fff;
-  box-shadow: 0 4px 24px rgba(59,130,246,0.3);
+.statCard {
+  background: var(--nm-surface); border-radius: 16px;
+  padding: 1.375rem; box-shadow: var(--s-card);
+  position: relative; overflow: hidden;
+  background-image: radial-gradient(ellipse at 20% 15%, rgba(255,255,255,0.55) 0%, transparent 60%);
+  transition: box-shadow 250ms, transform 250ms;
+}
+.statCard:hover { box-shadow: var(--s-float); transform: translateY(-2px); }
+.statCard::after {
+  content: ''; position: absolute; top: 10px; right: 10px;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.7) 0%, var(--nm-recessed) 45%, var(--nm-shadow-dark) 100%);
+  box-shadow: inset 0.5px 0.5px 1px rgba(0,0,0,0.18);
 }
 
-.scoreNum {
-  font-size: 3.75rem;
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.03em;
+.statValue {
+  font-family: 'JetBrains Mono', monospace; font-size: 2.25rem; font-weight: 700;
+  color: #f59e0b; line-height: 1;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.8); margin-bottom: 0.25rem;
+}
+.statLabel {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--nm-muted);
+  text-shadow: 0 1px 0 rgba(255,255,255,0.8);
 }
 
-.scoreStars {
-  display: flex;
-  gap: 0.1rem;
-  font-size: 1.25rem;
+.panel {
+  background: var(--nm-surface); border-radius: 20px;
+  box-shadow: var(--s-card); overflow: hidden; position: relative;
+  background-image: radial-gradient(ellipse at 12% 8%, rgba(255,255,255,0.5) 0%, transparent 55%);
+  margin-bottom: 1.5rem;
 }
-.scoreStar       { color: rgba(255,255,255,0.3); }
-.scoreStarFilled { color: #fbbf24; }
-
-.scoreLabel {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  opacity: 0.8;
-  margin-top: 0.25rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+.panel::before, .panel::after {
+  content: ''; position: absolute; width: 8px; height: 8px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.65) 0%, var(--nm-recessed) 42%, var(--nm-shadow-dark) 100%);
+  box-shadow: inset 0.5px 0.5px 1px rgba(0,0,0,0.18); z-index: 1;
 }
-.scoreSub  { font-size: 0.8125rem; opacity: 0.6; }
-.scoreTier { font-size: 0.8125rem; opacity: 0.75; font-style: italic; }
+.panel::before { top: 12px; left: 12px; }
+.panel::after  { top: 12px; right: 12px; }
 
-/* ── Distribution bar chart ────────────────────────────── */
-.distCard {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: var(--shadow);
+.panelHead {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 1.375rem;
+  border-bottom: 1px solid rgba(186,190,204,0.35);
+}
+.panelTitle {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.6875rem; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--nm-muted);
+  text-shadow: 0 1px 0 rgba(255,255,255,0.85);
 }
 
-.cardTitle {
-  font-size: 0.9375rem;
-  font-weight: 700;
-  margin: 0 0 1rem;
-  color: var(--color-text);
-}
-
-.bars { display: flex; flex-direction: column; gap: 0.625rem; }
-
-.barRow {
+/* Response feed rows */
+.responseRow {
   display: grid;
-  grid-template-columns: 110px 1fr 64px;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.barLabel {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  font-size: 0.8125rem;
-}
-
-.barStar {
-  font-weight: 700;
+  grid-template-columns: 140px 1fr auto auto;
+  gap: 1rem; align-items: center;
+  padding: 0.875rem 1.375rem;
+  border-bottom: 1px solid rgba(186,190,204,0.25);
   font-size: 0.875rem;
+  transition: background 120ms;
 }
-/* Color the star digit by data attribute */
-.barStar[data-rating="5"] { color: #22c55e; }
-.barStar[data-rating="4"] { color: #84cc16; }
-.barStar[data-rating="3"] { color: #f59e0b; }
-.barStar[data-rating="2"] { color: #f97316; }
-.barStar[data-rating="1"] { color: #ef4444; }
+.responseRow:last-child { border-bottom: none; }
+.responseRow:hover { background: rgba(186,190,204,0.1); }
 
-.barLabelText { color: var(--color-text-muted); }
+.responseDate {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.65rem;
+  color: var(--nm-muted);
+}
+.responseComment { color: var(--nm-text); font-size: 0.8125rem; }
 
-.barTrack {
-  height: 10px;
-  background: var(--color-bg);
-  border-radius: 9999px;
-  overflow: hidden;
+.starGroup {
+  display: flex; gap: 2px;
 }
-.barFill {
-  height: 100%;
-  border-radius: 9999px;
-  min-width: 4px;
-  transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
-}
+.starFilled { color: #f59e0b; font-size: 0.875rem; }
+.starEmpty  { color: #c8cdd6; font-size: 0.875rem; }
 
-.barStats  { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
-.barCount  { font-size: 0.875rem; font-weight: 700; color: var(--color-text); }
-.barPct    { font-size: 0.75rem; color: var(--color-text-muted); }
+/* Distribution bars */
+.distRow {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.5rem 1.375rem;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.6875rem; color: var(--nm-muted);
+}
+.distTrack {
+  flex: 1; height: 8px; border-radius: 999px;
+  background: var(--nm-recessed); box-shadow: var(--s-recess); overflow: hidden;
+}
+.distFill {
+  height: 100%; border-radius: 999px; background: #f59e0b;
+  transition: width 600ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.distCount { min-width: 24px; text-align: right; }
 
-/* ── Satisfaction ring card ─────────────────────────────── */
-.satisfactionCard {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: var(--shadow);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-}
+.ventStrip { display: flex; gap: 5px; padding: 0.625rem 1.375rem; border-top: 1px solid rgba(186,190,204,0.3); }
+.vent { width: 3px; height: 16px; border-radius: 999px; background: var(--nm-recessed); box-shadow: var(--s-recess); }
 
-.ring {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text);
+@media (max-width: 1024px) { .statsGrid { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 768px) {
+  .page { margin-left: 60px; padding: 1rem; }
+  .statsGrid { grid-template-columns: 1fr 1fr; }
+  .responseRow { grid-template-columns: 1fr auto; }
+  .responseDate { display: none; }
 }
-
-.ringCaption {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  text-align: center;
-  line-height: 1.5;
-  margin: 0;
-}
-
-/* ── Metric cards row ───────────────────────────────────── */
-.trendRow {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
-}
-
-.metricCard {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  padding: 1.25rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  box-shadow: var(--shadow);
-  transition: box-shadow 0.15s;
-}
-.metricCard:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-
-.metricIcon {
-  font-size: 1.375rem;
-  width: 48px;
-  height: 48px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.metricValue {
-  font-size: 1.375rem;
-  font-weight: 800;
-  line-height: 1;
-}
-.metricLabel {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-top: 0.2rem;
-}
-.metricSub {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  margin-top: 0.125rem;
-}
-
-/* ── Responsive ──────────────────────────────────────────── */
-@media (max-width: 1024px) {
-  .topRow {
-    grid-template-columns: 1fr 1fr;
-  }
-  .scoreCard {
-    grid-column: span 2;
-    flex-direction: row;
-    gap: 2rem;
-    padding: 1.5rem 2rem;
-    justify-content: flex-start;
-  }
-  .trendRow { grid-template-columns: repeat(2, 1fr); }
-}
-
-@media (max-width: 640px) {
-  .page { padding: 1rem; }
-  .topRow { grid-template-columns: 1fr; }
-  .scoreCard { grid-column: span 1; flex-direction: column; }
-  .trendRow { grid-template-columns: 1fr 1fr; }
-  .barRow { grid-template-columns: 80px 1fr 48px; }
+@media (prefers-reduced-motion: reduce) {
+  .statCard { transition: none; } .distFill { transition: none; }
 }
