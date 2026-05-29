@@ -3,10 +3,11 @@ import { useAuth } from '@/context/AuthContext'
 import styles from './Sidebar.module.css'
 
 const NAV = [
-  { to: '/dashboard', icon: '📊', label: 'Dashboard', roles: ['employee','it_staff','admin'] },
-  { to: '/tickets',   icon: '🎫', label: 'Tickets',   roles: ['employee','it_staff','admin'] },
-  { to: '/schedule',  icon: '🗓️', label: 'Schedule',   roles: ['employee','it_staff','admin'] },
+  { to: '/dashboard', icon: '📊', label: 'Dashboard',   roles: ['employee','it_staff','admin'] },
+  { to: '/tickets',   icon: '🎫', label: 'Tickets',     roles: ['employee','it_staff','admin'] },
+  { to: '/schedule',  icon: '🗓️', label: 'Schedule',    roles: ['employee','it_staff','admin'] },
   { to: '/surveys',   icon: '⭐', label: 'Satisfaction', roles: ['it_staff','admin'] },
+  { to: '/admin',     icon: '⚙️', label: 'Admin Panel', roles: ['admin'] },
 ]
 
 export default function Sidebar() {
@@ -40,9 +41,7 @@ export default function Sidebar() {
           <span className={styles.userName}>{user?.name}</span>
           <span className={styles.userRole}>{user?.role?.replace('_', ' ')}</span>
         </div>
-        <button onClick={logout} className={styles.logoutBtn} title="Log out">
-          ↩
-        </button>
+        <button onClick={logout} className={styles.logoutBtn} title="Log out">↩</button>
       </div>
     </nav>
   )

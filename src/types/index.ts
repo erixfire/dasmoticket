@@ -80,6 +80,20 @@ export interface Department {
   code: string
 }
 
+export interface AuditLog {
+  id: number
+  user_id: number | null
+  actor_name: string | null
+  actor_email: string | null
+  action: string
+  entity_type: string
+  entity_id: number | null
+  old_value: string | null
+  new_value: string | null
+  ip_address: string | null
+  created_at: string
+}
+
 export interface ApiResponse<T> {
   success: boolean
   data?: T

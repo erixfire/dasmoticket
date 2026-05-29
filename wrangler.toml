@@ -1,18 +1,8 @@
 name = "dasmoticket"
-compatibility_date = "2024-01-01"
+compatibility_date = "2024-05-01"
 pages_build_output_dir = "dist"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "dasmoticket-db"
-database_id = "YOUR_D1_DATABASE_ID"
-
-[vars]
-ENVIRONMENT = "development"
-JWT_SECRET = "your-local-dev-secret"
-CORS_ORIGIN = "http://localhost:5173"
-
-[env.production]
-[env.production.vars]
-ENVIRONMENT = "production"
-CORS_ORIGIN = "https://it-support.iloilocity.gov.ph"
+database_name = "ticketdb"
+database_id = "24fd35b4-68ce-4c41-bf9a-548f6cd83fab"

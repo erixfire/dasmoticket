@@ -7,6 +7,7 @@ import DashboardPage from '@/pages/DashboardPage'
 import TicketsPage from '@/pages/TicketsPage'
 import SchedulePage from '@/pages/SchedulePage'
 import SurveyStatsPage from '@/pages/SurveyStatsPage'
+import AdminPage from '@/pages/AdminPage'
 import NotFoundPage from '@/pages/NotFoundPage'
 import { useAuth } from '@/context/AuthContext'
 
@@ -31,6 +32,7 @@ export default function App() {
           <Route path="/tickets" element={<ProtectedRoute><TicketsPage /></ProtectedRoute>} />
           <Route path="/schedule" element={<ProtectedRoute><SchedulePage /></ProtectedRoute>} />
           <Route path="/surveys" element={<ProtectedRoute roles={['it_staff','admin']}><SurveyStatsPage /></ProtectedRoute>} />
+          <Route path="/admin" element={<ProtectedRoute roles={['admin']}><AdminPage /></ProtectedRoute>} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </AppLayout>
