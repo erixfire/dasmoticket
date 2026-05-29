@@ -21,6 +21,15 @@ export default function UsersTab() {
   const [editRole, setEditRole]     = useState<UserRole>('employee')
   const [saving, setSaving]         = useState(false)
 
+  // Create user form
+  const [creating, setCreating]     = useState(false)
+  const [newName, setNewName]       = useState('')
+  const [newEmail, setNewEmail]     = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [newRole, setNewRole]       = useState<UserRole>('employee')
+  const [newDept, setNewDept]       = useState('')
+  const [createSaving, setCreateSaving] = useState(false)
+
   const load = useCallback(async () => {
     setLoading(true)
     try {
@@ -42,23 +51,50 @@ export default function UsersTab() {
   const startEdit = (u: User) => { setEditId(u.id); setEditRole(u.role) }
   const cancelEdit = () => setEditId(null)
 
-  // Role update: re-create the user via create endpoint isn't viable;
-  // show pending indicator and inform admin the API endpoint is not yet available.
   const saveRole = async (u: User) => {
+    if (editRole === u.role) { cancelEdit(); return }
     setSaving(true)
     try {
-      // Optimistic local update until a PATCH /users/:id endpoint is added
+      await api.users.update(u.id, { role: editRole })
       setUsers(us => us.map(x => x.id === u.id ? { ...x, role: editRole } : x))
-      toast('success', `${u.name}'s role updated to ${editRole} (local only — add PATCH /users/:id to persist)`)
+      toast('success', `${u.name}'s role updated to ${editRole.replace('_',' ')}`)
       setEditId(null)
-    } catch { toast('error', 'Failed to update role') }
+    } catch (err) {
+      toast('error', err instanceof Error ? err.message : 'Failed to update role')
+    }
     setSaving(false)
   }
 
-  const toggleActive = (u: User) => {
-    // Optimistic local toggle — persists when PATCH /users/:id is available
-    setUsers(us => us.map(x => x.id === u.id ? { ...x, is_active: x.is_active === 0 ? 1 : 0 } : x))
-    toast('success', `${u.name} ${u.is_active !== 0 ? 'deactivated' : 'activated'} (local only)`)
+  const toggleActive = async (u: User) => {
+    const next = u.is_active === 0 ? 1 : 0
+    try {
+      await api.users.update(u.id, { is_active: next })
+      setUsers(us => us.map(x => x.id === u.id ? { ...x, is_active: next } : x))
+      toast('success', `${u.name} ${next === 0 ? 'deactivated' : 'activated'}`)
+    } catch (err) {
+      toast('error', err instanceof Error ? err.message : 'Failed to update user')
+    }
+  }
+
+  const handleCreate = async () => {
+    if (!newName.trim() || !newEmail.trim() || !newPassword.trim()) return
+    setCreateSaving(true)
+    try {
+      await api.users.create({
+        name: newName.trim(),
+        email: newEmail.trim(),
+        password: newPassword,
+        role: newRole,
+        department_id: newDept ? Number(newDept) : null,
+      })
+      toast('success', `User "${newName.trim()}" created successfully`)
+      setCreating(false)
+      setNewName(''); setNewEmail(''); setNewPassword(''); setNewRole('employee'); setNewDept('')
+      load()
+    } catch (err) {
+      toast('error', err instanceof Error ? err.message : 'Failed to create user')
+    }
+    setCreateSaving(false)
   }
 
   return (
@@ -86,7 +122,48 @@ export default function UsersTab() {
           ))}
         </div>
         <span className={styles.countBadge}>{filtered.length} user{filtered.length !== 1 ? 's' : ''}</span>
+        <button className={styles.createBtn} onClick={() => setCreating(c => !c)}>
+          {creating ? '× Cancel' : '+ New User'}
+        </button>
       </div>
+
+      {/* Create user form */}
+      {creating && (
+        <div className={styles.createCard}>
+          <h3 className={styles.createTitle}>New User</h3>
+          <div className={styles.createGrid}>
+            <div className={styles.fieldGroup}>
+              <label className={styles.fieldLabel}>Full Name <span className={styles.required}>*</span></label>
+              <input className={styles.fieldInput} placeholder="e.g. Juan Dela Cruz" value={newName} onChange={e => setNewName(e.target.value)} autoFocus />
+            </div>
+            <div className={styles.fieldGroup}>
+              <label className={styles.fieldLabel}>Email <span className={styles.required}>*</span></label>
+              <input className={styles.fieldInput} type="email" placeholder="user@example.com" value={newEmail} onChange={e => setNewEmail(e.target.value)} />
+            </div>
+            <div className={styles.fieldGroup}>
+              <label className={styles.fieldLabel}>Password <span className={styles.required}>*</span></label>
+              <input className={styles.fieldInput} type="password" placeholder="Min. 8 characters" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+            </div>
+            <div className={styles.fieldGroup}>
+              <label className={styles.fieldLabel}>Role</label>
+              <select className={styles.fieldInput} value={newRole} onChange={e => setNewRole(e.target.value as UserRole)}>
+                {ROLES.map(r => <option key={r} value={r}>{r.replace('_',' ')}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className={styles.createActions}>
+            <button
+              className={`${styles.actionBtn} ${styles.actionSave}`}
+              onClick={handleCreate}
+              disabled={createSaving || !newName.trim() || !newEmail.trim() || !newPassword.trim()}
+            >
+              {createSaving ? <Spinner size="sm" /> : null}
+              {createSaving ? 'Creating...' : 'Create User'}
+            </button>
+            <button className={styles.actionBtn} onClick={() => setCreating(false)}>× Cancel</button>
+          </div>
+        </div>
+      )}
 
       {/* Table */}
       {loading ? (

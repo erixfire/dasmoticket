@@ -4,7 +4,6 @@ import type { Department } from '@/types'
 import { Spinner, toast } from '@/components/ui'
 import styles from './AdminTabs.module.css'
 
-// Extended locally with optional UI-only fields
 type DeptView = Department & { head?: string; staff_count?: number; open_tickets?: number }
 
 export default function DepartmentsTab() {
@@ -16,6 +15,7 @@ export default function DepartmentsTab() {
   const [saving, setSaving]     = useState(false)
   const [editId, setEditId]     = useState<number | null>(null)
   const [editName, setEditName] = useState('')
+  const [renameSaving, setRenameSaving] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -31,35 +31,44 @@ export default function DepartmentsTab() {
   const handleCreate = async () => {
     if (!newName.trim()) return
     setSaving(true)
-    // Optimistic local add — persist when POST /departments is added to api.ts
-    const newDept: DeptView = {
-      id: Date.now(),
-      name: newName.trim(),
-      code: newName.trim().slice(0, 4).toUpperCase(),
-      head: newHead.trim() || undefined,
+    try {
+      await api.departments.create(newName.trim(), newHead.trim() || undefined)
+      toast('success', `Department "${newName.trim()}" created`)
+      setNewName(''); setNewHead(''); setCreating(false)
+      load()
+    } catch (err) {
+      toast('error', err instanceof Error ? err.message : 'Failed to create department')
     }
-    setDepts(d => [...d, newDept])
-    toast('success', `Department "${newName.trim()}" created (local only — add POST /departments to persist)`)
-    setNewName(''); setNewHead(''); setCreating(false)
     setSaving(false)
   }
 
-  const handleRename = (d: DeptView) => {
+  const handleRename = async (d: DeptView) => {
     if (!editName.trim() || editName.trim() === d.name) { setEditId(null); return }
-    setDepts(ds => ds.map(x => x.id === d.id ? { ...x, name: editName.trim() } : x))
-    toast('success', 'Department renamed (local only)')
-    setEditId(null)
+    setRenameSaving(true)
+    try {
+      await api.departments.update(d.id, editName.trim())
+      setDepts(ds => ds.map(x => x.id === d.id ? { ...x, name: editName.trim() } : x))
+      toast('success', 'Department renamed')
+      setEditId(null)
+    } catch (err) {
+      toast('error', err instanceof Error ? err.message : 'Failed to rename department')
+    }
+    setRenameSaving(false)
   }
 
-  const handleDelete = (d: DeptView) => {
-    if (!window.confirm(`Delete department "${d.name}"?`)) return
-    setDepts(ds => ds.filter(x => x.id !== d.id))
-    toast('success', `"${d.name}" deleted (local only)`)
+  const handleDelete = async (d: DeptView) => {
+    if (!window.confirm(`Delete department "${d.name}"? This cannot be undone.`)) return
+    try {
+      await api.departments.delete(d.id)
+      setDepts(ds => ds.filter(x => x.id !== d.id))
+      toast('success', `"${d.name}" deleted`)
+    } catch (err) {
+      toast('error', err instanceof Error ? err.message : 'Failed to delete department')
+    }
   }
 
   return (
     <div className={styles.tabContent}>
-      {/* Header toolbar */}
       <div className={styles.toolbar}>
         <span className={styles.countBadge}>{depts.length} department{depts.length !== 1 ? 's' : ''}</span>
         <button className={styles.createBtn} onClick={() => setCreating(c => !c)}>
@@ -67,7 +76,6 @@ export default function DepartmentsTab() {
         </button>
       </div>
 
-      {/* Create form */}
       {creating && (
         <div className={styles.createCard}>
           <h3 className={styles.createTitle}>New Department</h3>
@@ -104,7 +112,6 @@ export default function DepartmentsTab() {
         </div>
       )}
 
-      {/* Dept grid */}
       {loading ? (
         <div className={styles.center}><Spinner size="lg" /></div>
       ) : depts.length === 0 ? (
@@ -151,7 +158,13 @@ export default function DepartmentsTab() {
               <div className={styles.deptActions}>
                 {editId === d.id ? (
                   <>
-                    <button className={`${styles.actionBtn} ${styles.actionSave}`} onClick={() => handleRename(d)}>✓ Rename</button>
+                    <button
+                      className={`${styles.actionBtn} ${styles.actionSave}`}
+                      onClick={() => handleRename(d)}
+                      disabled={renameSaving}
+                    >
+                      {renameSaving ? '...' : '✓ Rename'}
+                    </button>
                     <button className={styles.actionBtn} onClick={() => setEditId(null)}>×</button>
                   </>
                 ) : (
