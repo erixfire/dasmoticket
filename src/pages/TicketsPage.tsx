@@ -1,10 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
-import type { Ticket, TicketNote } from '@/types'
+import type { Ticket } from '@/types'
 import TicketFilters from '@/components/TicketFilters'
 import TicketTable from '@/components/TicketTable'
-import CreateTicketModal from '@/components/CreateTicketModal'
-import TicketDetailPanel from '@/components/TicketDetailPanel'
 import { PageHeader, EmptyState, SkeletonTable, toast } from '@/components/ui'
 import styles from './TicketsPage.module.css'
 
@@ -18,13 +17,13 @@ interface Filters {
 const DEFAULT_FILTERS: Filters = { status: '', category: '', priority: '', search: '' }
 
 export default function TicketsPage() {
-  const [tickets, setTickets]       = useState<Ticket[]>([])
-  const [total, setTotal]           = useState(0)
-  const [page, setPage]             = useState(1)
-  const [loading, setLoading]       = useState(false)
-  const [filters, setFilters]       = useState<Filters>(DEFAULT_FILTERS)
-  const [showCreate, setShowCreate] = useState(false)
-  const [selected, setSelected]     = useState<{ ticket: Ticket; notes: TicketNote[] } | null>(null)
+  const navigate = useNavigate()
+
+  const [tickets, setTickets] = useState<Ticket[]>([])
+  const [total, setTotal]     = useState(0)
+  const [page, setPage]       = useState(1)
+  const [loading, setLoading] = useState(false)
+  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
 
   const isFiltered = Object.values(filters).some(Boolean)
 
@@ -48,15 +47,8 @@ export default function TicketsPage() {
 
   useEffect(() => { load() }, [load])
 
-  const handleSelect = async (ticket: Ticket) => {
-    try {
-      const res = await api.tickets.get(ticket.id)
-      setSelected({ ticket: res.data.ticket, notes: res.data.notes })
-    } catch {
-      toast('error', 'Could not load ticket details.')
-    }
-  }
-
+  const handleSelect      = (ticket: Ticket) => navigate(`/tickets/${ticket.id}`)
+  const handleNewTicket   = () => navigate('/tickets/new')
   const handleFilterChange = (f: Filters) => { setFilters(f); setPage(1) }
   const handleFilterReset  = () => { setFilters(DEFAULT_FILTERS); setPage(1) }
 
@@ -67,6 +59,7 @@ export default function TicketsPage() {
       <PageHeader
         title="Tickets"
         subtitle={`${total} ticket${total !== 1 ? 's' : ''} total`}
+        action={{ label: '+ New Ticket', onClick: handleNewTicket }}
       />
 
       <TicketFilters
@@ -86,7 +79,7 @@ export default function TicketsPage() {
             : 'Create your first ticket to get started.'}
           action={isFiltered
             ? { label: 'Clear filters', onClick: handleFilterReset }
-            : { label: 'Create a ticket', onClick: () => setShowCreate(true) }}
+            : { label: 'Create a ticket', onClick: handleNewTicket }}
         />
       ) : (
         <TicketTable
@@ -102,30 +95,6 @@ export default function TicketsPage() {
           <span className={styles.pageInfo}>Page {page} of {totalPages} &nbsp;&middot;&nbsp; {total} tickets</span>
           <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)} className={styles.pageBtn}>Next →</button>
         </div>
-      )}
-
-      {showCreate && (
-        <CreateTicketModal
-          open={showCreate}
-          onClose={() => setShowCreate(false)}
-          onCreated={() => {
-            setShowCreate(false)
-            load()
-            toast('success', 'Ticket created successfully!')
-          }}
-        />
-      )}
-
-      {selected && (
-        <TicketDetailPanel
-          ticket={selected.ticket}
-          notes={selected.notes}
-          onClose={() => setSelected(null)}
-          onUpdated={() => {
-            load()
-            toast('success', 'Ticket updated.')
-          }}
-        />
       )}
     </div>
   )
