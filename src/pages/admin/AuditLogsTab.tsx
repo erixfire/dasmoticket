@@ -3,111 +3,87 @@ import { api } from '@/lib/api'
 import { Spinner } from '@/components/ui'
 import styles from './AdminTabs.module.css'
 
-type ActionType = string
-
-interface AuditEntry {
+interface AuditLog {
   id: number
-  action: ActionType
-  actor_name: string
-  actor_role: string
-  target: string
-  detail?: string
-  ip?: string
+  action: string
+  actor_name: string | null
+  actor_role: string | null
+  entity_type: string
+  entity_id: number | null
+  old_value: string | null
+  new_value: string | null
+  ip_address: string | null
   created_at: string
 }
 
 const ACTION_ICON: Record<string, string> = {
-  ticket_created:     '🎫',
-  ticket_updated:     '🔄',
-  ticket_assigned:    '📌',
-  ticket_resolved:    '✅',
-  ticket_closed:      '🔒',
-  user_role_changed:  '📦',
-  user_deactivated:   '🚫',
-  department_created: '🏢',
-  department_deleted: '🗑️',
+  CREATE_TICKET:        '🎫',
+  UPDATE_TICKET:        '🔄',
+  CREATE_NOTE:          '💬',
+  UPDATE_USER_ROLE:     '📦',
+  UPDATE_USER_STATUS:   '🚫',
+  CREATE_USER:          '👤',
+  CREATE_DEPARTMENT:    '🏢',
+  UPDATE_DEPARTMENT:    '✏️',
+  DELETE_DEPARTMENT:    '🗑️',
+  CREATE_SCHEDULE:      '📅',
+  UPDATE_SCHEDULE:      '🕒',
 }
 
 const ACTION_COLOR: Record<string, string> = {
-  ticket_created:     '#3498db',
-  ticket_updated:     '#f39c12',
-  ticket_assigned:    '#9b59b6',
-  ticket_resolved:    '#2ecc71',
-  ticket_closed:      '#95a5a6',
-  user_role_changed:  '#e67e22',
-  user_deactivated:   '#e74c3c',
-  department_created: '#1abc9c',
-  department_deleted: '#e74c3c',
+  CREATE_TICKET:        '#3498db',
+  UPDATE_TICKET:        '#f39c12',
+  CREATE_NOTE:          '#9b59b6',
+  UPDATE_USER_ROLE:     '#e67e22',
+  UPDATE_USER_STATUS:   '#e74c3c',
+  CREATE_USER:          '#1abc9c',
+  CREATE_DEPARTMENT:    '#1abc9c',
+  UPDATE_DEPARTMENT:    '#f39c12',
+  DELETE_DEPARTMENT:    '#e74c3c',
+  CREATE_SCHEDULE:      '#3498db',
+  UPDATE_SCHEDULE:      '#f39c12',
 }
 
-// Derives audit-style log entries from ticket data (fallback until /audit API exists)
-async function fetchAuditEntries(): Promise<AuditEntry[]> {
-  const r = await api.tickets.list({ page: '1' })
-  const tickets = r.data.tickets
-  const entries: AuditEntry[] = []
-
-  tickets.slice(0, 30).forEach((t, i) => {
-    entries.push({
-      id: i * 3 + 1,
-      action: 'ticket_created',
-      actor_name: t.requester_name ?? 'Employee',
-      actor_role: 'employee',
-      target: `#${t.ticket_number} ${t.title}`,
-      created_at: t.created_at,
-    })
-    if (t.assigned_to) {
-      entries.push({
-        id: i * 3 + 2,
-        action: 'ticket_assigned',
-        actor_name: 'System',
-        actor_role: 'it_staff',
-        target: `#${t.ticket_number} assigned to ${t.assigned_name ?? 'staff'}`,
-        created_at: t.updated_at,
-      })
-    }
-    if (t.status === 'Resolved' || t.status === 'Closed') {
-      entries.push({
-        id: i * 3 + 3,
-        action: t.status === 'Resolved' ? 'ticket_resolved' : 'ticket_closed',
-        actor_name: t.assigned_name ?? 'IT Staff',
-        actor_role: 'it_staff',
-        target: `#${t.ticket_number} ${t.title}`,
-        created_at: t.resolved_at ?? t.updated_at,
-      })
-    }
-  })
-
-  return entries.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+const ENTITY_LABELS: Record<string, string> = {
+  tickets:     'Ticket',
+  users:       'User',
+  departments: 'Department',
+  schedules:   'Schedule',
+  notes:       'Note',
 }
 
 export default function AuditLogsTab() {
-  const [logs, setLogs]         = useState<AuditEntry[]>([])
-  const [loading, setLoading]   = useState(true)
-  const [search, setSearch]     = useState('')
+  const [logs, setLogs]             = useState<AuditLog[]>([])
+  const [total, setTotal]           = useState(0)
+  const [page, setPage]             = useState(1)
+  const [loading, setLoading]       = useState(true)
+  const [search, setSearch]         = useState('')
   const [actionFilter, setActionFilter] = useState('all')
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await fetchAuditEntries()
-      setLogs(data)
+      const res = await api.auditLogs.list({ page, limit: 50 })
+      setLogs(res.logs)
+      setTotal(res.total)
     } catch {
       setLogs([])
     }
     setLoading(false)
-  }, [])
+  }, [page])
 
   useEffect(() => { load() }, [load])
 
-  const actionTypes = ['all', ...Array.from(new Set(logs.map(l => l.action)))]
+  const actionTypes = ['all', ...Array.from(new Set(logs.map(l => l.action))).sort()]
 
   const filtered = logs.filter(l => {
     const matchAction = actionFilter === 'all' || l.action === actionFilter
     const q = search.toLowerCase()
     const matchSearch = !q ||
-      l.actor_name.toLowerCase().includes(q) ||
-      l.target.toLowerCase().includes(q) ||
-      l.action.toLowerCase().includes(q)
+      (l.actor_name ?? '').toLowerCase().includes(q) ||
+      l.action.toLowerCase().includes(q) ||
+      l.entity_type.toLowerCase().includes(q) ||
+      (l.new_value ?? '').toLowerCase().includes(q)
     return matchAction && matchSearch
   })
 
@@ -119,6 +95,8 @@ export default function AuditLogsTab() {
     return new Date(iso).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
   }
 
+  const totalPages = Math.ceil(total / 50)
+
   return (
     <div className={styles.tabContent}>
       <div className={styles.toolbar}>
@@ -126,7 +104,7 @@ export default function AuditLogsTab() {
           <span className={styles.searchIcon}>🔍</span>
           <input
             className={styles.searchInput}
-            placeholder="Search logs..."
+            placeholder="Search actor, action, entity..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -134,13 +112,15 @@ export default function AuditLogsTab() {
         <select
           className={styles.selectFilter}
           value={actionFilter}
-          onChange={e => setActionFilter(e.target.value)}
+          onChange={e => { setActionFilter(e.target.value); setPage(1) }}
         >
           {actionTypes.map(a => (
-            <option key={a} value={a}>{a === 'all' ? 'All Actions' : a.replace(/_/g, ' ')}</option>
+            <option key={a} value={a}>
+              {a === 'all' ? 'All Actions' : a.replace(/_/g, ' ')}
+            </option>
           ))}
         </select>
-        <span className={styles.countBadge}>{filtered.length} event{filtered.length !== 1 ? 's' : ''}</span>
+        <span className={styles.countBadge}>{total} event{total !== 1 ? 's' : ''}</span>
       </div>
 
       {loading ? (
@@ -151,43 +131,56 @@ export default function AuditLogsTab() {
           <p>No audit logs found.</p>
         </div>
       ) : (
-        <div className={styles.auditCard}>
-          <ul className={styles.auditList}>
-            {filtered.map((l, idx) => (
-              <li key={l.id} className={styles.auditItem}>
-                <div className={styles.auditLine}>
-                  <div
-                    className={styles.auditDot}
-                    style={{
-                      background: ACTION_COLOR[l.action] ?? '#95a5a6',
-                      boxShadow: `0 0 6px ${ACTION_COLOR[l.action] ?? '#95a5a6'}88`,
-                    }}
-                  />
-                  {idx < filtered.length - 1 && <div className={styles.auditConnector} />}
-                </div>
-                <div className={styles.auditBody}>
-                  <div className={styles.auditTop}>
-                    <span className={styles.auditIcon}>{ACTION_ICON[l.action] ?? '📤'}</span>
-                    <span
-                      className={styles.auditAction}
-                      style={{ color: ACTION_COLOR[l.action] ?? '#95a5a6' }}
-                    >
-                      {l.action.replace(/_/g, ' ')}
-                    </span>
-                    <span className={styles.auditTime}>{relTime(l.created_at)}</span>
+        <>
+          <div className={styles.auditCard}>
+            <ul className={styles.auditList}>
+              {filtered.map((l, idx) => (
+                <li key={l.id} className={styles.auditItem}>
+                  <div className={styles.auditLine}>
+                    <div
+                      className={styles.auditDot}
+                      style={{
+                        background: ACTION_COLOR[l.action] ?? '#95a5a6',
+                        boxShadow: `0 0 6px ${ACTION_COLOR[l.action] ?? '#95a5a6'}88`,
+                      }}
+                    />
+                    {idx < filtered.length - 1 && <div className={styles.auditConnector} />}
                   </div>
-                  <p className={styles.auditTarget}>{l.target}</p>
-                  <div className={styles.auditMeta}>
-                    <span className={styles.auditActor}>{l.actor_name}</span>
-                    <span className={styles.auditRole}>{l.actor_role.replace('_', ' ')}</span>
-                    {l.ip && <span className={styles.auditIp}>{l.ip}</span>}
-                    {l.detail && <span className={styles.auditDetail}>{l.detail}</span>}
+                  <div className={styles.auditBody}>
+                    <div className={styles.auditTop}>
+                      <span className={styles.auditIcon}>{ACTION_ICON[l.action] ?? '📤'}</span>
+                      <span
+                        className={styles.auditAction}
+                        style={{ color: ACTION_COLOR[l.action] ?? '#95a5a6' }}
+                      >
+                        {l.action.replace(/_/g, ' ')}
+                      </span>
+                      <span className={styles.auditTime}>{relTime(l.created_at)}</span>
+                    </div>
+                    <p className={styles.auditTarget}>
+                      {ENTITY_LABELS[l.entity_type] ?? l.entity_type}
+                      {l.entity_id ? ` #${l.entity_id}` : ''}
+                      {l.new_value ? ` — ${l.new_value.length > 80 ? l.new_value.slice(0, 80) + '…' : l.new_value}` : ''}
+                    </p>
+                    <div className={styles.auditMeta}>
+                      <span className={styles.auditActor}>{l.actor_name ?? 'System'}</span>
+                      {l.actor_role && <span className={styles.auditRole}>{l.actor_role.replace('_', ' ')}</span>}
+                      {l.ip_address && <span className={styles.auditIp}>{l.ip_address}</span>}
+                    </div>
                   </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {totalPages > 1 && (
+            <div className={styles.pagination}>
+              <button disabled={page === 1} onClick={() => setPage(p => p - 1)} className={styles.pageBtn}>← Prev</button>
+              <span className={styles.pageInfo}>Page {page} of {totalPages} &middot; {total} events</span>
+              <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)} className={styles.pageBtn}>Next →</button>
+            </div>
+          )}
+        </>
       )}
     </div>
   )

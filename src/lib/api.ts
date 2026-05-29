@@ -86,4 +86,12 @@ export const api = {
     stats: () =>
       request<{ success: boolean; data: { stats: { avg_rating: number; total: number; distribution: Record<number, number> } } }>('/surveys/stats'),
   },
+  auditLogs: {
+    list: (params?: { page?: number; limit?: number; action?: string; entity_type?: string }) => {
+      const qs = params ? '?' + new URLSearchParams(
+        Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)]))
+      ).toString() : ''
+      return request<{ logs: import('@/types').AuditLog[]; total: number; page: number; limit: number }>(`/audit-logs${qs}`)
+    },
+  },
 }

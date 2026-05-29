@@ -77,6 +77,20 @@ export interface DBDepartment {
   created_at: string
 }
 
+export interface DBAuditLog {
+  id: number
+  user_id: number | null
+  actor_name: string | null
+  actor_role: string | null
+  action: string
+  entity_type: string
+  entity_id: number | null
+  old_value: string | null
+  new_value: string | null
+  ip_address: string | null
+  created_at: string
+}
+
 // ─ Users ───────────────────────────────────────────────────────────────────────────
 
 export async function getUserByEmail(db: D1Database, email: string): Promise<DBUser | null> {
@@ -394,7 +408,31 @@ export async function getTicketStats(db: D1Database, role: string, userId: numbe
   ).first()
 }
 
-// ─ Audit ──────────────────────────────────────────────────────────────────────────
+// ─ Audit Logs ────────────────────────────────────────────────────────────────────
+
+export async function listAuditLogs(
+  db: D1Database,
+  params: { action?: string; entity_type?: string; page?: number; limit?: number }
+): Promise<{ logs: DBAuditLog[]; total: number }> {
+  const { action, entity_type, page = 1, limit = 50 } = params
+  const conditions: string[] = []
+  const bindings: unknown[] = []
+  if (action)      { conditions.push('al.action = ?');      bindings.push(action) }
+  if (entity_type) { conditions.push('al.entity_type = ?'); bindings.push(entity_type) }
+  const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : ''
+  const offset = (page - 1) * limit
+  const [data, count] = await Promise.all([
+    db.prepare(
+      `SELECT al.*, u.name as actor_name, u.role as actor_role
+       FROM audit_logs al LEFT JOIN users u ON al.user_id = u.id
+       ${where}
+       ORDER BY al.created_at DESC LIMIT ? OFFSET ?`
+    ).bind(...bindings, limit, offset).all<DBAuditLog>(),
+    db.prepare(`SELECT COUNT(*) as total FROM audit_logs al ${where}`)
+      .bind(...bindings).first<{ total: number }>(),
+  ])
+  return { logs: data.results, total: count?.total ?? 0 }
+}
 
 export async function logAudit(db: D1Database, userId: number | null, action: string, entityType: string, entityId: number | null, oldValue: string | null, newValue: string | null, ipAddress: string | null): Promise<void> {
   await db.prepare(
