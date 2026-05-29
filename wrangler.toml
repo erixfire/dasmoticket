@@ -1,0 +1,13 @@
+name = "dasmoticket"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = "./dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "dasmoticket-db"
+database_id = "YOUR_D1_DATABASE_ID_HERE"
+
+[vars]
+JWT_SECRET = "replace-with-a-strong-secret"
+CORS_ORIGIN = "https://dasmoticket.pages.dev"
+EXPIRY_HOURS = "8"
