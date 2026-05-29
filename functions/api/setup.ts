@@ -2,10 +2,7 @@
  * ONE-SHOT SETUP ENDPOINT
  * POST /api/setup
  * Body: { user_id: number, password: string, setup_key: string }
- *
- * - Only works if the target user still has password_hash = 'CHANGE_ME'
- * - Disabled automatically once any real hash exists
- * - Requires SETUP_KEY env var to match (prevents random abuse)
+ * Auto-disables once no CHANGE_ME password hashes remain.
  */
 import type { Env } from '../_middleware'
 import { hashPassword } from '../lib/crypto'
@@ -25,7 +22,7 @@ function json(data: unknown, status = 200) {
 
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   try {
-    // Check if setup has already been completed (no CHANGE_ME hashes left)
+    // Auto-disable once all CHANGE_ME hashes are gone
     const pending = await ctx.env.DB
       .prepare("SELECT COUNT(*) as cnt FROM users WHERE password_hash = 'CHANGE_ME'")
       .first<{ cnt: number }>()
@@ -37,9 +34,8 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     const body = await ctx.request.json() as SetupBody
     const { user_id, password, setup_key } = body
 
-    // Validate setup key against env var (set SETUP_KEY in Cloudflare Pages env vars)
-    const expectedKey = (ctx.env as unknown as Record<string, string>).SETUP_KEY
-    if (!expectedKey || setup_key !== expectedKey) {
+    // Validate setup key — now properly typed via Env
+    if (!ctx.env.SETUP_KEY || setup_key !== ctx.env.SETUP_KEY) {
       return json({ error: 'Invalid setup key.' }, 401)
     }
 
@@ -48,8 +44,8 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     }
 
     const user = await ctx.env.DB
-      .prepare('SELECT id, name, email, role FROM users WHERE id = ? AND password_hash = ?')
-      .bind(user_id, 'CHANGE_ME')
+      .prepare("SELECT id, name, email, role FROM users WHERE id = ? AND password_hash = 'CHANGE_ME'")
+      .bind(user_id)
       .first<{ id: number; name: string; email: string; role: string }>()
 
     if (!user) {
@@ -72,6 +68,5 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   }
 }
 
-// Disable GET so it can't be probed
 export const onRequestGet: PagesFunction<Env> = async () =>
   new Response('Not found', { status: 404 })

@@ -3,10 +3,10 @@ export interface Env {
   JWT_SECRET: string
   CORS_ORIGIN: string
   ENVIRONMENT: string
+  SETUP_KEY: string
 }
 
 export const onRequest: PagesFunction<Env> = async (ctx) => {
-  // Handle preflight globally
   if (ctx.request.method === 'OPTIONS') {
     return new Response(null, {
       status: 204,
