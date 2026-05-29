@@ -70,7 +70,14 @@ export interface DBSurvey {
   submitted_at: string
 }
 
-// ─ Users ────────────────────────────────────────────────────────────────────
+export interface DBDepartment {
+  id: number
+  name: string
+  code: string
+  created_at: string
+}
+
+// ─ Users ───────────────────────────────────────────────────────────────────────────
 
 export async function getUserByEmail(db: D1Database, email: string): Promise<DBUser | null> {
   return db.prepare(
@@ -84,7 +91,7 @@ export async function getUserById(db: D1Database, id: number): Promise<DBUser | 
   return db.prepare(
     `SELECT u.*, d.name as department_name FROM users u
      LEFT JOIN departments d ON u.department_id = d.id
-     WHERE u.id = ? AND u.is_active = 1`
+     WHERE u.id = ?`
   ).bind(id).first<DBUser>()
 }
 
@@ -111,20 +118,52 @@ export async function createUser(db: D1Database, name: string, email: string, pa
   ).bind(name, email, passwordHash, role, departmentId).run()
 }
 
+export async function updateUser(db: D1Database, id: number, data: { role?: string; is_active?: number }): Promise<D1Result> {
+  const fields: string[] = []
+  const values: unknown[] = []
+  if (data.role !== undefined)      { fields.push('role = ?');      values.push(data.role) }
+  if (data.is_active !== undefined) { fields.push('is_active = ?'); values.push(data.is_active) }
+  if (fields.length === 0) throw new Error('No fields to update')
+  fields.push('updated_at = CURRENT_TIMESTAMP')
+  values.push(id)
+  return db.prepare(`UPDATE users SET ${fields.join(', ')} WHERE id = ?`).bind(...values).run()
+}
+
 export async function updateUserPassword(db: D1Database, userId: number, passwordHash: string): Promise<D1Result> {
   return db.prepare(
     `UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
   ).bind(passwordHash, userId).run()
 }
 
-// ─ Departments ─────────────────────────────────────────────────────
+// ─ Departments ─────────────────────────────────────────────────────────────
 
-export async function listDepartments(db: D1Database) {
-  const result = await db.prepare(`SELECT * FROM departments ORDER BY name ASC`).all()
+export async function listDepartments(db: D1Database): Promise<DBDepartment[]> {
+  const result = await db.prepare(`SELECT * FROM departments ORDER BY name ASC`).all<DBDepartment>()
   return result.results
 }
 
-// ─ Tickets ──────────────────────────────────────────────────────────────────
+export async function getDepartmentById(db: D1Database, id: number): Promise<DBDepartment | null> {
+  return db.prepare(`SELECT * FROM departments WHERE id = ?`).bind(id).first<DBDepartment>()
+}
+
+export async function createDepartment(db: D1Database, name: string, code: string): Promise<D1Result> {
+  return db.prepare(
+    `INSERT INTO departments (name, code) VALUES (?, ?)`
+  ).bind(name, code).run()
+}
+
+export async function updateDepartment(db: D1Database, id: number, name: string): Promise<D1Result> {
+  const code = name.trim().slice(0, 4).toUpperCase().replace(/\s+/g, '')
+  return db.prepare(
+    `UPDATE departments SET name = ?, code = ? WHERE id = ?`
+  ).bind(name, code, id).run()
+}
+
+export async function deleteDepartment(db: D1Database, id: number): Promise<D1Result> {
+  return db.prepare(`DELETE FROM departments WHERE id = ?`).bind(id).run()
+}
+
+// ─ Tickets ───────────────────────────────────────────────────────────────────────────
 
 const TICKET_SELECT = `
   SELECT t.*,
@@ -195,7 +234,7 @@ export async function updateTicket(db: D1Database, id: number, data: { title?: s
   return db.prepare(`UPDATE tickets SET ${fields.join(', ')} WHERE id = ?`).bind(...values).run()
 }
 
-// ─ Notes ──────────────────────────────────────────────────────────────────
+// ─ Notes ──────────────────────────────────────────────────────────────────────────
 
 export async function getTicketNotes(db: D1Database, ticketId: number): Promise<DBNote[]> {
   const result = await db.prepare(
@@ -212,7 +251,7 @@ export async function addTicketNote(db: D1Database, ticketId: number, authorId: 
   ).bind(ticketId, authorId, note, isInternal).run()
 }
 
-// ─ Schedules ──────────────────────────────────────────────────────────────
+// ─ Schedules ───────────────────────────────────────────────────────────────────────
 
 const SCHEDULE_SELECT = `
   SELECT s.*,
@@ -302,7 +341,7 @@ export async function getSchedulesForCalendar(db: D1Database, yearMonth: string,
   return result.results
 }
 
-// ─ Surveys ──────────────────────────────────────────────────────────────────
+// ─ Surveys ──────────────────────────────────────────────────────────────────────────
 
 export async function getSurveyByTicketId(db: D1Database, ticketId: number): Promise<DBSurvey | null> {
   return db.prepare(
@@ -330,10 +369,9 @@ export async function getSurveyStats(db: D1Database): Promise<{ avg_rating: numb
   return { avg_rating: summary?.avg_rating ?? 0, total: summary?.total ?? 0, distribution }
 }
 
-// ─ Stats ──────────────────────────────────────────────────────────────────
+// ─ Stats ──────────────────────────────────────────────────────────────────────────
 
 export async function getTicketStats(db: D1Database, role: string, userId: number) {
-  // Fixed: use parameterized query instead of string interpolation to prevent SQL injection
   if (role === 'employee') {
     return db.prepare(
       `SELECT
@@ -356,7 +394,7 @@ export async function getTicketStats(db: D1Database, role: string, userId: numbe
   ).first()
 }
 
-// ─ Audit ──────────────────────────────────────────────────────────────────
+// ─ Audit ──────────────────────────────────────────────────────────────────────────
 
 export async function logAudit(db: D1Database, userId: number | null, action: string, entityType: string, entityId: number | null, oldValue: string | null, newValue: string | null, ipAddress: string | null): Promise<void> {
   await db.prepare(
@@ -364,7 +402,7 @@ export async function logAudit(db: D1Database, userId: number | null, action: st
   ).bind(userId, action, entityType, entityId, oldValue, newValue, ipAddress).run()
 }
 
-// ─ Helpers ──────────────────────────────────────────────────────────────────
+// ─ Helpers ──────────────────────────────────────────────────────────────────────────
 
 function generateTicketNumber(): string {
   const date = new Date().toISOString().slice(2, 10).replace(/-/g, '')
