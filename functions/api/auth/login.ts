@@ -1,5 +1,5 @@
 import type { Env } from '../../_middleware'
-import { verifyPassword, signJWT } from '../../lib/crypto'
+import { verifyPassword, hashPassword, signJWT } from '../../lib/crypto'
 import { getUserByEmail } from '../../lib/db'
 import { jsonResponse, errorResponse, optionsResponse } from '../../lib/response'
 import { logAudit } from '../../lib/db'
@@ -18,31 +18,35 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
 
     const user = await getUserByEmail(ctx.env.DB, email.toLowerCase().trim())
 
-    // Use consistent timing to prevent email enumeration
     const passwordMatch = user
       ? await verifyPassword(password, user.password_hash)
-      : await verifyPassword(password, 'dummy:0000000000000000000000000000000000000000000000000000000000000000')
+      : await verifyPassword(password, 'pbkdf2:00000000000000000000000000000000:0000000000000000000000000000000000000000000000000000000000000000')
 
     if (!user || !passwordMatch) {
       return errorResponse('Invalid email or password', 401, origin)
     }
 
-    const now = Math.floor(Date.now() / 1000)
-    const payload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-      iat: now,
-      exp: now + TOKEN_TTL,
+    // Auto-upgrade plain: hash to PBKDF2 on first login
+    if (user.password_hash.startsWith('plain:')) {
+      const newHash = await hashPassword(password)
+      await ctx.env.DB
+        .prepare('UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+        .bind(newHash, user.id)
+        .run()
     }
 
-    const token = await signJWT(payload, ctx.env.JWT_SECRET)
+    const now = Math.floor(Date.now() / 1000)
+    const token = await signJWT(
+      { sub: user.id, email: user.email, role: user.role },
+      ctx.env.JWT_SECRET
+    )
 
     const ip = ctx.request.headers.get('CF-Connecting-IP')
     await logAudit(ctx.env.DB, user.id, 'LOGIN', 'users', user.id, null, null, ip)
 
     const { password_hash, ...safeUser } = user
     void password_hash
+    void now
 
     return jsonResponse({ token, user: safeUser, expires_in: TOKEN_TTL }, 200, origin)
   } catch (err) {

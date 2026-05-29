@@ -1,6 +1,6 @@
 // Web Crypto API helpers — runs natively on Cloudflare Workers
 
-// ─── JWT ──────────────────────────────────────────────────────────────────────
+// ─── JWT ───────────────────────────────────────────────────────────────────
 
 export interface JWTPayload {
   sub: number
@@ -34,7 +34,7 @@ async function hmacKey(secret: string, usage: KeyUsage): Promise<CryptoKey> {
 export async function signJWT(
   payload: Omit<JWTPayload, 'iat' | 'exp'>,
   secret: string,
-  expiresInSeconds = 60 * 60 * 8 // 8 hours
+  expiresInSeconds = 60 * 60 * 8
 ): Promise<string> {
   const now = Math.floor(Date.now() / 1000)
   const fullPayload: JWTPayload = { ...payload, iat: now, exp: now + expiresInSeconds }
@@ -61,7 +61,7 @@ export async function verifyJWT(token: string, secret: string): Promise<JWTPaylo
   return payload
 }
 
-// ─── Password (PBKDF2) ────────────────────────────────────────────────────────
+// ─── Password (PBKDF2) ─────────────────────────────────────────────────────
 
 export async function hashPassword(password: string): Promise<string> {
   const encoder = new TextEncoder()
@@ -76,9 +76,20 @@ export async function hashPassword(password: string): Promise<string> {
   return `pbkdf2:${saltHex}:${hashHex}`
 }
 
+/**
+ * Verify a password against a stored hash.
+ * Supports two formats:
+ *   plain:<password>   — plaintext comparison for initial bootstrap (auto-upgrades on login)
+ *   pbkdf2:<salt>:<hash> — standard PBKDF2 hash
+ */
 export async function verifyPassword(password: string, stored: string): Promise<boolean> {
   try {
-    const [, saltHex, hashHex] = stored.split(':')
+    if (stored.startsWith('plain:')) {
+      return password === stored.slice(6)
+    }
+    const parts = stored.split(':')
+    if (parts.length !== 3) return false
+    const [, saltHex, hashHex] = parts
     const salt = new Uint8Array(saltHex.match(/.{2}/g)!.map(h => parseInt(h, 16)))
     const encoder = new TextEncoder()
     const keyMaterial = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits'])
