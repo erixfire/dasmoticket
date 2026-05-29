@@ -47,8 +47,8 @@ export default function TicketsPage() {
 
   useEffect(() => { load() }, [load])
 
-  const handleSelect      = (ticket: Ticket) => navigate(`/tickets/${ticket.id}`)
-  const handleNewTicket   = () => navigate('/tickets/new')
+  const handleSelect       = (ticket: Ticket) => navigate(`/tickets/${ticket.id}`)
+  const handleNewTicket    = () => navigate('/tickets/new')
   const handleFilterChange = (f: Filters) => { setFilters(f); setPage(1) }
   const handleFilterReset  = () => { setFilters(DEFAULT_FILTERS); setPage(1) }
 
@@ -59,7 +59,9 @@ export default function TicketsPage() {
       <PageHeader
         title="Tickets"
         subtitle={`${total} ticket${total !== 1 ? 's' : ''} total`}
-        action={{ label: '+ New Ticket', onClick: handleNewTicket }}
+        actions={
+          <button className={styles.newBtn} onClick={handleNewTicket}>+ New Ticket</button>
+        }
       />
 
       <TicketFilters

@@ -1,20 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
+import type { AuditLog } from '@/types'
 import { Spinner } from '@/components/ui'
 import styles from './AdminTabs.module.css'
 
-interface AuditLog {
-  id: number
-  action: string
-  actor_name: string | null
-  actor_role: string | null
-  entity_type: string
-  entity_id: number | null
-  old_value: string | null
-  new_value: string | null
-  ip_address: string | null
-  created_at: string
-}
+// actor_role comes from the LEFT JOIN in the API — not part of the base AuditLog type
+type AuditLogWithRole = AuditLog & { actor_role?: string | null }
 
 const ACTION_ICON: Record<string, string> = {
   CREATE_TICKET:        '🎫',
@@ -28,6 +19,10 @@ const ACTION_ICON: Record<string, string> = {
   DELETE_DEPARTMENT:    '🗑️',
   CREATE_SCHEDULE:      '📅',
   UPDATE_SCHEDULE:      '🕒',
+  TOKEN_REFRESH:        '🔑',
+  LOGIN:                '🟢',
+  LOGIN_FAILED:         '🔴',
+  LOGIN_BLOCKED:        '🚫',
 }
 
 const ACTION_COLOR: Record<string, string> = {
@@ -42,6 +37,10 @@ const ACTION_COLOR: Record<string, string> = {
   DELETE_DEPARTMENT:    '#e74c3c',
   CREATE_SCHEDULE:      '#3498db',
   UPDATE_SCHEDULE:      '#f39c12',
+  TOKEN_REFRESH:        '#7f8c8d',
+  LOGIN:                '#27ae60',
+  LOGIN_FAILED:         '#e74c3c',
+  LOGIN_BLOCKED:        '#c0392b',
 }
 
 const ENTITY_LABELS: Record<string, string> = {
@@ -53,18 +52,18 @@ const ENTITY_LABELS: Record<string, string> = {
 }
 
 export default function AuditLogsTab() {
-  const [logs, setLogs]             = useState<AuditLog[]>([])
-  const [total, setTotal]           = useState(0)
-  const [page, setPage]             = useState(1)
-  const [loading, setLoading]       = useState(true)
-  const [search, setSearch]         = useState('')
+  const [logs, setLogs]                 = useState<AuditLogWithRole[]>([])
+  const [total, setTotal]               = useState(0)
+  const [page, setPage]                 = useState(1)
+  const [loading, setLoading]           = useState(true)
+  const [search, setSearch]             = useState('')
   const [actionFilter, setActionFilter] = useState('all')
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
       const res = await api.auditLogs.list({ page, limit: 50 })
-      setLogs(res.logs)
+      setLogs(res.logs as AuditLogWithRole[])
       setTotal(res.total)
     } catch {
       setLogs([])
