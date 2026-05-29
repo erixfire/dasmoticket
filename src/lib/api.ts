@@ -1,10 +1,41 @@
 const BASE_URL = '/api'
+const TOKEN_KEY = 'dasmoticket_token'
 
 function getToken(): string | null {
-  return localStorage.getItem('dasmoticket_token')
+  return localStorage.getItem(TOKEN_KEY)
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+// Queue-collapse: if multiple requests 401 simultaneously, only one refresh fires
+let _isRefreshing = false
+let _refreshQueue: Array<(token: string | null) => void> = []
+
+async function silentRefresh(): Promise<string | null> {
+  if (_isRefreshing) {
+    return new Promise(resolve => { _refreshQueue.push(resolve) })
+  }
+  _isRefreshing = true
+  try {
+    const token = getToken()
+    if (!token) return null
+    const res = await fetch(`${BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) return null
+    const data = await res.json() as { token: string }
+    localStorage.setItem(TOKEN_KEY, data.token)
+    _refreshQueue.forEach(fn => fn(data.token))
+    return data.token
+  } catch {
+    _refreshQueue.forEach(fn => fn(null))
+    return null
+  } finally {
+    _isRefreshing = false
+    _refreshQueue = []
+  }
+}
+
+async function request<T>(path: string, options: RequestInit = {}, _retry = true): Promise<T> {
   const token = getToken()
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -12,6 +43,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     ...((options.headers as Record<string, string>) || {}),
   }
   const res = await fetch(`${BASE_URL}${path}`, { ...options, headers })
+
+  // Silent refresh on 401 — retry the original request once with the new token
+  if (res.status === 401 && _retry && path !== '/auth/refresh' && path !== '/auth/login') {
+    const newToken = await silentRefresh()
+    if (newToken) return request<T>(path, options, false)
+    window.dispatchEvent(new CustomEvent('dasmoticket:session-expired'))
+    throw new Error('Session expired')
+  }
+
   const data = await res.json()
   if (!res.ok) throw new Error(data.error || `Request failed: ${res.status}`)
   return data
@@ -23,6 +63,8 @@ export const api = {
       request<{ success: boolean; data: { token: string; user: import('@/types').User; expires_in: number } }>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
     me: () =>
       request<{ success: boolean; data: import('@/types').User }>('/auth/me'),
+    refresh: () =>
+      request<{ token: string; expires_in: number }>('/auth/refresh', { method: 'POST' }),
     changePassword: (current_password: string, new_password: string) =>
       request('/auth/change-password', { method: 'POST', body: JSON.stringify({ current_password, new_password }) }),
   },

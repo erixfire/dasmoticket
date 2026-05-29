@@ -1,6 +1,6 @@
 // Web Crypto API helpers — runs natively on Cloudflare Workers
 
-// ─── JWT ───────────────────────────────────────────────────────────────────
+// ─ JWT ──────────────────────────────────────────────────────────────────────
 
 export interface JWTPayload {
   sub: number
@@ -61,7 +61,32 @@ export async function verifyJWT(token: string, secret: string): Promise<JWTPaylo
   return payload
 }
 
-// ─── Password (PBKDF2 only) ────────────────────────────────────────────────────
+/**
+ * Like verifyJWT but allows tokens expired within the grace window.
+ * Used exclusively by POST /api/auth/refresh.
+ */
+export async function verifyJWTLenient(
+  token: string,
+  secret: string,
+  gracePeriodSeconds = 60 * 60  // accept tokens expired up to 1 hour ago
+): Promise<JWTPayload> {
+  const parts = token.split('.')
+  if (parts.length !== 3) throw new Error('Invalid token')
+  const [header, body, sig] = parts
+  const key = await hmacKey(secret, 'verify')
+  const valid = await crypto.subtle.verify(
+    'HMAC', key,
+    base64urlDecode(sig),
+    new TextEncoder().encode(`${header}.${body}`)
+  )
+  if (!valid) throw new Error('Invalid signature')
+  const payload: JWTPayload = JSON.parse(new TextDecoder().decode(base64urlDecode(body)))
+  const now = Math.floor(Date.now() / 1000)
+  if (payload.exp < now - gracePeriodSeconds) throw new Error('Token too old to refresh')
+  return payload
+}
+
+// ─ Password (PBKDF2) ────────────────────────────────────────────────────────
 
 export async function hashPassword(password: string): Promise<string> {
   const encoder = new TextEncoder()
@@ -76,10 +101,6 @@ export async function hashPassword(password: string): Promise<string> {
   return `pbkdf2:${saltHex}:${hashHex}`
 }
 
-/**
- * Verify password against PBKDF2 hash only.
- * plain: prefix support removed — all passwords must be properly hashed.
- */
 export async function verifyPassword(password: string, stored: string): Promise<boolean> {
   try {
     const parts = stored.split(':')
