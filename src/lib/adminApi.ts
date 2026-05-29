@@ -12,9 +12,10 @@ async function adminRequest<T>(path: string, options: RequestInit = {}): Promise
       ...((options.headers as Record<string, string>) || {}),
     },
   })
-  const data = await res.json()
-  if (!res.ok) throw new Error((data as { error?: string }).error || `Request failed: ${res.status}`)
-  return data as T
+  const json = await res.json() as { success: boolean; data?: T; error?: string }
+  if (!res.ok) throw new Error(json.error || `Request failed: ${res.status}`)
+  // Unwrap the { success, data } envelope from jsonResponse()
+  return (json.data ?? json) as T
 }
 
 export const adminApi = {
