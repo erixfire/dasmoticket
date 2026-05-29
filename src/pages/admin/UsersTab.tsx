@@ -1,42 +1,31 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
+import type { User, UserRole } from '@/types'
 import { Spinner, toast } from '@/components/ui'
 import styles from './AdminTabs.module.css'
 
-type Role = 'employee' | 'it_staff' | 'admin'
-
-interface User {
-  id: number
-  name: string
-  email: string
-  role: Role
-  department?: string
-  created_at: string
-  is_active?: boolean
-}
-
-const ROLE_COLOR: Record<Role, string> = {
+const ROLE_COLOR: Record<UserRole, string> = {
   employee: '#3498db',
   it_staff: '#2ecc71',
   admin:    '#ff4757',
 }
 
-const ROLES: Role[] = ['employee', 'it_staff', 'admin']
+const ROLES: UserRole[] = ['employee', 'it_staff', 'admin']
 
 export default function UsersTab() {
-  const [users, setUsers]       = useState<User[]>([])
-  const [loading, setLoading]   = useState(true)
-  const [search, setSearch]     = useState('')
-  const [roleFilter, setRoleFilter] = useState<Role | 'all'>('all')
-  const [editId, setEditId]     = useState<number | null>(null)
-  const [editRole, setEditRole] = useState<Role>('employee')
-  const [saving, setSaving]     = useState(false)
+  const [users, setUsers]           = useState<User[]>([])
+  const [loading, setLoading]       = useState(true)
+  const [search, setSearch]         = useState('')
+  const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all')
+  const [editId, setEditId]         = useState<number | null>(null)
+  const [editRole, setEditRole]     = useState<UserRole>('employee')
+  const [saving, setSaving]         = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
       const r = await api.users.list()
-      setUsers(r.data.users ?? r.data ?? [])
+      setUsers(r.data.users)
     } catch { toast('error', 'Failed to load users') }
     setLoading(false)
   }, [])
@@ -53,23 +42,23 @@ export default function UsersTab() {
   const startEdit = (u: User) => { setEditId(u.id); setEditRole(u.role) }
   const cancelEdit = () => setEditId(null)
 
+  // Role update: re-create the user via create endpoint isn't viable;
+  // show pending indicator and inform admin the API endpoint is not yet available.
   const saveRole = async (u: User) => {
     setSaving(true)
     try {
-      await api.users.update(u.id, { role: editRole })
+      // Optimistic local update until a PATCH /users/:id endpoint is added
       setUsers(us => us.map(x => x.id === u.id ? { ...x, role: editRole } : x))
-      toast('success', `${u.name}'s role updated to ${editRole}`)
+      toast('success', `${u.name}'s role updated to ${editRole} (local only — add PATCH /users/:id to persist)`)
       setEditId(null)
     } catch { toast('error', 'Failed to update role') }
     setSaving(false)
   }
 
-  const toggleActive = async (u: User) => {
-    try {
-      await api.users.update(u.id, { is_active: !u.is_active })
-      setUsers(us => us.map(x => x.id === u.id ? { ...x, is_active: !x.is_active } : x))
-      toast('success', `${u.name} ${u.is_active ? 'deactivated' : 'activated'}`)
-    } catch { toast('error', 'Failed to update user') }
+  const toggleActive = (u: User) => {
+    // Optimistic local toggle — persists when PATCH /users/:id is available
+    setUsers(us => us.map(x => x.id === u.id ? { ...x, is_active: x.is_active === 0 ? 1 : 0 } : x))
+    toast('success', `${u.name} ${u.is_active !== 0 ? 'deactivated' : 'activated'} (local only)`)
   }
 
   return (
@@ -90,7 +79,7 @@ export default function UsersTab() {
             <button
               key={r}
               className={`${styles.chip} ${roleFilter === r ? styles.chipActive : ''}`}
-              onClick={() => setRoleFilter(r)}
+              onClick={() => setRoleFilter(r as UserRole | 'all')}
             >
               {r === 'all' ? 'All' : r.replace('_', ' ')}
             </button>
@@ -122,10 +111,13 @@ export default function UsersTab() {
             </thead>
             <tbody>
               {filtered.map(u => (
-                <tr key={u.id} className={u.is_active === false ? styles.rowInactive : ''}>
+                <tr key={u.id} className={u.is_active === 0 ? styles.rowInactive : ''}>
                   <td>
                     <div className={styles.userCell}>
-                      <div className={styles.userAvatar} style={{ background: `${ROLE_COLOR[u.role]}22`, color: ROLE_COLOR[u.role] }}>
+                      <div
+                        className={styles.userAvatar}
+                        style={{ background: `${ROLE_COLOR[u.role]}22`, color: ROLE_COLOR[u.role] }}
+                      >
                         {u.name.slice(0,1).toUpperCase()}
                       </div>
                       <div>
@@ -139,28 +131,35 @@ export default function UsersTab() {
                       <select
                         className={styles.roleSelect}
                         value={editRole}
-                        onChange={e => setEditRole(e.target.value as Role)}
+                        onChange={e => setEditRole(e.target.value as UserRole)}
                       >
                         {ROLES.map(r => <option key={r} value={r}>{r.replace('_',' ')}</option>)}
                       </select>
                     ) : (
-                      <span className={styles.roleBadge} style={{ background: `${ROLE_COLOR[u.role]}22`, color: ROLE_COLOR[u.role] }}>
+                      <span
+                        className={styles.roleBadge}
+                        style={{ background: `${ROLE_COLOR[u.role]}22`, color: ROLE_COLOR[u.role] }}
+                      >
                         {u.role.replace('_',' ')}
                       </span>
                     )}
                   </td>
-                  <td className={styles.mutedCell}>{u.department ?? '—'}</td>
+                  <td className={styles.mutedCell}>{u.department_name ?? '—'}</td>
                   <td className={styles.mutedCell}>{new Date(u.created_at).toLocaleDateString()}</td>
                   <td>
-                    <span className={`${styles.statusDot} ${u.is_active === false ? styles.statusInactive : styles.statusActive}`}>
-                      {u.is_active === false ? 'Inactive' : 'Active'}
+                    <span className={`${styles.statusDot} ${u.is_active === 0 ? styles.statusInactive : styles.statusActive}`}>
+                      {u.is_active === 0 ? 'Inactive' : 'Active'}
                     </span>
                   </td>
                   <td>
                     <div className={styles.actions}>
                       {editId === u.id ? (
                         <>
-                          <button className={`${styles.actionBtn} ${styles.actionSave}`} onClick={() => saveRole(u)} disabled={saving}>
+                          <button
+                            className={`${styles.actionBtn} ${styles.actionSave}`}
+                            onClick={() => saveRole(u)}
+                            disabled={saving}
+                          >
                             {saving ? '...' : '✓ Save'}
                           </button>
                           <button className={styles.actionBtn} onClick={cancelEdit}>×</button>
@@ -169,11 +168,11 @@ export default function UsersTab() {
                         <>
                           <button className={styles.actionBtn} onClick={() => startEdit(u)} title="Edit role">✏️</button>
                           <button
-                            className={`${styles.actionBtn} ${u.is_active === false ? styles.actionActivate : styles.actionDeactivate}`}
+                            className={`${styles.actionBtn} ${u.is_active === 0 ? styles.actionActivate : styles.actionDeactivate}`}
                             onClick={() => toggleActive(u)}
-                            title={u.is_active === false ? 'Activate' : 'Deactivate'}
+                            title={u.is_active === 0 ? 'Activate' : 'Deactivate'}
                           >
-                            {u.is_active === false ? '▶' : '⏸'}
+                            {u.is_active === 0 ? '▶' : '⏸'}
                           </button>
                         </>
                       )}

@@ -3,9 +3,9 @@ import { api } from '@/lib/api'
 import { Spinner } from '@/components/ui'
 import styles from './AdminTabs.module.css'
 
-type ActionType = 'ticket_created' | 'ticket_updated' | 'ticket_assigned' | 'ticket_resolved' | 'ticket_closed' | 'user_role_changed' | 'user_deactivated' | 'department_created' | 'department_deleted' | string
+type ActionType = string
 
-interface AuditLog {
+interface AuditEntry {
   id: number
   action: ActionType
   actor_name: string
@@ -40,54 +40,60 @@ const ACTION_COLOR: Record<string, string> = {
   department_deleted: '#e74c3c',
 }
 
-async function fetchAuditLogs(): Promise<AuditLog[]> {
-  try {
-    const r = await api.audit?.list()
-    return r?.data?.logs ?? r?.data ?? []
-  } catch {
-    // Fall back: synthesise from recent ticket updates
-    try {
-      const r = await api.tickets.list({ page: '1' })
-      return (r.data.tickets as any[]).slice(0, 30).flatMap((t: any, i: number) => [
-        {
-          id: i * 3 + 1,
-          action: 'ticket_created',
-          actor_name: t.requester_name ?? 'Employee',
-          actor_role: 'employee',
-          target: `#${t.ticket_number} ${t.title}`,
-          created_at: t.created_at,
-        },
-        ...(t.assigned_to ? [{
-          id: i * 3 + 2,
-          action: 'ticket_assigned',
-          actor_name: 'System',
-          actor_role: 'it_staff',
-          target: `#${t.ticket_number} assigned to ${t.assigned_name ?? 'staff'}`,
-          created_at: t.updated_at,
-        }] : []),
-        ...(t.status === 'Resolved' || t.status === 'Closed' ? [{
-          id: i * 3 + 3,
-          action: t.status === 'Resolved' ? 'ticket_resolved' : 'ticket_closed',
-          actor_name: t.assigned_name ?? 'IT Staff',
-          actor_role: 'it_staff',
-          target: `#${t.ticket_number} ${t.title}`,
-          created_at: t.resolved_at ?? t.updated_at,
-        }] : []),
-      ]).sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    } catch { return [] }
-  }
+// Derives audit-style log entries from ticket data (fallback until /audit API exists)
+async function fetchAuditEntries(): Promise<AuditEntry[]> {
+  const r = await api.tickets.list({ page: '1' })
+  const tickets = r.data.tickets
+  const entries: AuditEntry[] = []
+
+  tickets.slice(0, 30).forEach((t, i) => {
+    entries.push({
+      id: i * 3 + 1,
+      action: 'ticket_created',
+      actor_name: t.requester_name ?? 'Employee',
+      actor_role: 'employee',
+      target: `#${t.ticket_number} ${t.title}`,
+      created_at: t.created_at,
+    })
+    if (t.assigned_to) {
+      entries.push({
+        id: i * 3 + 2,
+        action: 'ticket_assigned',
+        actor_name: 'System',
+        actor_role: 'it_staff',
+        target: `#${t.ticket_number} assigned to ${t.assigned_name ?? 'staff'}`,
+        created_at: t.updated_at,
+      })
+    }
+    if (t.status === 'Resolved' || t.status === 'Closed') {
+      entries.push({
+        id: i * 3 + 3,
+        action: t.status === 'Resolved' ? 'ticket_resolved' : 'ticket_closed',
+        actor_name: t.assigned_name ?? 'IT Staff',
+        actor_role: 'it_staff',
+        target: `#${t.ticket_number} ${t.title}`,
+        created_at: t.resolved_at ?? t.updated_at,
+      })
+    }
+  })
+
+  return entries.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 }
 
 export default function AuditLogsTab() {
-  const [logs, setLogs]         = useState<AuditLog[]>([])
+  const [logs, setLogs]         = useState<AuditEntry[]>([])
   const [loading, setLoading]   = useState(true)
   const [search, setSearch]     = useState('')
   const [actionFilter, setActionFilter] = useState('all')
 
   const load = useCallback(async () => {
     setLoading(true)
-    const data = await fetchAuditLogs()
-    setLogs(data)
+    try {
+      const data = await fetchAuditEntries()
+      setLogs(data)
+    } catch {
+      setLogs([])
+    }
     setLoading(false)
   }, [])
 
@@ -108,8 +114,8 @@ export default function AuditLogsTab() {
   const relTime = (iso: string) => {
     const diff = Date.now() - new Date(iso).getTime()
     if (diff < 60000)    return 'just now'
-    if (diff < 3600000)  return `${Math.floor(diff/60000)}m ago`
-    if (diff < 86400000) return `${Math.floor(diff/3600000)}h ago`
+    if (diff < 3600000)  return `${Math.floor(diff / 60000)}m ago`
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`
     return new Date(iso).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
   }
 
@@ -149,11 +155,13 @@ export default function AuditLogsTab() {
           <ul className={styles.auditList}>
             {filtered.map((l, idx) => (
               <li key={l.id} className={styles.auditItem}>
-                {/* Timeline connector */}
                 <div className={styles.auditLine}>
                   <div
                     className={styles.auditDot}
-                    style={{ background: ACTION_COLOR[l.action] ?? '#95a5a6', boxShadow: `0 0 6px ${ACTION_COLOR[l.action] ?? '#95a5a6'}88` }}
+                    style={{
+                      background: ACTION_COLOR[l.action] ?? '#95a5a6',
+                      boxShadow: `0 0 6px ${ACTION_COLOR[l.action] ?? '#95a5a6'}88`,
+                    }}
                   />
                   {idx < filtered.length - 1 && <div className={styles.auditConnector} />}
                 </div>

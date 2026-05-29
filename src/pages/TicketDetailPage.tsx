@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
 import type { Ticket, TicketNote } from '@/types'
 import { Spinner, toast, Badge, RoleBadge } from '@/components/ui'
+import type { BadgeVariant } from '@/components/ui/Badge'
 import { useAuth } from '@/context/AuthContext'
 import styles from './TicketDetailPage.module.css'
 
@@ -159,7 +160,7 @@ export default function TicketDetailPage() {
                     <div className={styles.timelineBody}>
                       <div className={styles.timelineMeta}>
                         <strong>{n.author_name ?? 'Unknown'}</strong>
-                        {n.is_internal && <span className={styles.internalBadge}>Internal</span>}
+                        {n.is_internal ? <span className={styles.internalBadge}>Internal</span> : null}
                         <span className={styles.timelineTime}>{new Date(n.created_at).toLocaleString('en-PH')}</span>
                       </div>
                       <p className={styles.timelineNote}>{n.note}</p>
@@ -287,9 +288,9 @@ export default function TicketDetailPage() {
   )
 }
 
-function statusVariant(s: string): 'success' | 'warning' | 'error' | 'default' {
+function statusVariant(s: string): BadgeVariant {
   if (s === 'Resolved' || s === 'Closed') return 'success'
   if (s === 'In Progress') return 'warning'
-  if (s === 'Open') return 'error'
+  if (s === 'Open') return 'danger'
   return 'default'
 }

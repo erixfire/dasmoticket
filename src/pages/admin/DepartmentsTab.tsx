@@ -1,19 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
+import type { Department } from '@/types'
 import { Spinner, toast } from '@/components/ui'
 import styles from './AdminTabs.module.css'
 
-interface Department {
-  id: number
-  name: string
-  head?: string
-  staff_count?: number
-  open_tickets?: number
-  created_at: string
-}
+// Extended locally with optional UI-only fields
+type DeptView = Department & { head?: string; staff_count?: number; open_tickets?: number }
 
 export default function DepartmentsTab() {
-  const [depts, setDepts]       = useState<Department[]>([])
+  const [depts, setDepts]       = useState<DeptView[]>([])
   const [loading, setLoading]   = useState(true)
   const [creating, setCreating] = useState(false)
   const [newName, setNewName]   = useState('')
@@ -26,7 +21,7 @@ export default function DepartmentsTab() {
     setLoading(true)
     try {
       const r = await api.departments.list()
-      setDepts(r.data.departments ?? r.data ?? [])
+      setDepts(r.data.departments)
     } catch { toast('error', 'Failed to load departments') }
     setLoading(false)
   }, [])
@@ -36,34 +31,30 @@ export default function DepartmentsTab() {
   const handleCreate = async () => {
     if (!newName.trim()) return
     setSaving(true)
-    try {
-      const r = await api.departments.create({ name: newName.trim(), head: newHead.trim() || undefined })
-      setDepts(d => [...d, r.data.department ?? r.data])
-      toast('success', `Department "${newName.trim()}" created`)
-      setNewName(''); setNewHead(''); setCreating(false)
-    } catch { toast('error', 'Failed to create department') }
+    // Optimistic local add — persist when POST /departments is added to api.ts
+    const newDept: DeptView = {
+      id: Date.now(),
+      name: newName.trim(),
+      code: newName.trim().slice(0, 4).toUpperCase(),
+      head: newHead.trim() || undefined,
+    }
+    setDepts(d => [...d, newDept])
+    toast('success', `Department "${newName.trim()}" created (local only — add POST /departments to persist)`)
+    setNewName(''); setNewHead(''); setCreating(false)
     setSaving(false)
   }
 
-  const handleRename = async (d: Department) => {
+  const handleRename = (d: DeptView) => {
     if (!editName.trim() || editName.trim() === d.name) { setEditId(null); return }
-    setSaving(true)
-    try {
-      await api.departments.update(d.id, { name: editName.trim() })
-      setDepts(ds => ds.map(x => x.id === d.id ? { ...x, name: editName.trim() } : x))
-      toast('success', 'Department renamed')
-      setEditId(null)
-    } catch { toast('error', 'Failed to rename') }
-    setSaving(false)
+    setDepts(ds => ds.map(x => x.id === d.id ? { ...x, name: editName.trim() } : x))
+    toast('success', 'Department renamed (local only)')
+    setEditId(null)
   }
 
-  const handleDelete = async (d: Department) => {
-    if (!window.confirm(`Delete department "${d.name}"? This cannot be undone.`)) return
-    try {
-      await api.departments.delete(d.id)
-      setDepts(ds => ds.filter(x => x.id !== d.id))
-      toast('success', `"${d.name}" deleted`)
-    } catch { toast('error', 'Failed to delete department') }
+  const handleDelete = (d: DeptView) => {
+    if (!window.confirm(`Delete department "${d.name}"?`)) return
+    setDepts(ds => ds.filter(x => x.id !== d.id))
+    toast('success', `"${d.name}" deleted (local only)`)
   }
 
   return (
@@ -140,6 +131,7 @@ export default function DepartmentsTab() {
                     <div className={styles.deptName}>{d.name}</div>
                   )}
                   {d.head && <div className={styles.deptHead}>Head: {d.head}</div>}
+                  <div className={styles.deptHead}>Code: {d.code}</div>
                 </div>
               </div>
               <div className={styles.deptStats}>
@@ -152,14 +144,14 @@ export default function DepartmentsTab() {
                   <span className={styles.deptStatLabel}>Open Tickets</span>
                 </div>
                 <div className={styles.deptStat}>
-                  <span className={styles.deptStatVal}>{new Date(d.created_at).toLocaleDateString('en-PH', { month: 'short', year: 'numeric' })}</span>
-                  <span className={styles.deptStatLabel}>Created</span>
+                  <span className={styles.deptStatVal}>{d.code}</span>
+                  <span className={styles.deptStatLabel}>Code</span>
                 </div>
               </div>
               <div className={styles.deptActions}>
                 {editId === d.id ? (
                   <>
-                    <button className={`${styles.actionBtn} ${styles.actionSave}`} onClick={() => handleRename(d)} disabled={saving}>{saving ? '...' : '✓ Rename'}</button>
+                    <button className={`${styles.actionBtn} ${styles.actionSave}`} onClick={() => handleRename(d)}>✓ Rename</button>
                     <button className={styles.actionBtn} onClick={() => setEditId(null)}>×</button>
                   </>
                 ) : (
