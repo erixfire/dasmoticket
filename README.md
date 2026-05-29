@@ -1,112 +1,66 @@
-# DASMO IT Ticketing System
+# DASMO Ticket System
 
-> Iloilo City Government — IT Support Portal  
-> Powered by **Cloudflare Pages** + **Cloudflare Functions** + **Cloudflare D1**
+IT Ticketing System for the **Iloilo City Government**, built on Cloudflare Pages + D1.
 
----
+## Tech Stack
 
-## Repository Structure
+- **Frontend:** React 18 + Vite + TypeScript
+- **Backend:** Cloudflare Functions (Pages Functions)
+- **Database:** Cloudflare D1 (Serverless SQLite)
+- **Auth:** JWT-based RBAC (Employee / IT Staff / Admin)
+- **Deployment:** Cloudflare Pages via GitHub CI/CD
 
-```
-dasmoticket/
-├── functions/                   # Cloudflare Functions (serverless API)
-│   ├── api/
-│   │   ├── _middleware.js       # JWT auth + CORS middleware
-│   │   ├── auth/
-│   │   │   └── login.js         # POST /api/auth/login
-│   │   ├── tickets/
-│   │   │   ├── index.js         # GET/POST /api/tickets
-│   │   │   └── [id].js          # GET/PATCH /api/tickets/:id
-│   │   ├── schedules/
-│   │   │   └── index.js         # POST /api/schedules
-│   │   ├── surveys/
-│   │   │   └── index.js         # GET/POST /api/surveys
-│   │   └── dashboard/
-│   │       └── stats.js         # GET /api/dashboard/stats
-│   └── utils/
-│       ├── auth.js              # JWT sign/verify helpers
-│       └── db.js                # D1 query abstractions
-├── src/                         # Frontend (Vanilla JS, no build step)
-│   ├── index.html
-│   ├── style.css
-│   ├── main.js                  # Router entry point
-│   ├── components/
-│   │   └── layout.js            # Sidebar + topbar shell
-│   ├── pages/
-│   │   ├── login.js
-│   │   ├── dashboard.js
-│   │   ├── tickets.js
-│   │   ├── newTicket.js
-│   │   └── ticketDetail.js      # Schedule + survey UIs
-│   └── utils/
-│       └── auth.js              # Token management + apiFetch
-├── schema.sql                   # D1 database schema
-├── wrangler.toml                # Cloudflare Workers/Pages config
-└── README.md
-```
+## Getting Started
 
----
-
-## Quick Start
-
-### 1. Install Wrangler
+### 1. Install dependencies
 ```bash
-npm install -g wrangler
-wrangler login
+npm install
 ```
 
-### 2. Create D1 Database
+### 2. Create a D1 database
 ```bash
 wrangler d1 create dasmoticket-db
-# Copy the database_id into wrangler.toml
 ```
+Copy the `database_id` output and paste it into `wrangler.toml`.
 
-### 3. Apply Schema
+### 3. Initialize the database schema
 ```bash
-wrangler d1 execute dasmoticket-db --file=./schema.sql
+npm run db:init
 ```
 
-### 4. Run Locally
+### 4. Set up local environment variables
 ```bash
-wrangler pages dev ./src --d1=DB=dasmoticket-db
+cp .env.example .dev.vars
+# Edit .dev.vars with your values
 ```
 
-### 5. Deploy to Cloudflare Pages
+### 5. Run locally
 ```bash
-# Connect this GitHub repo to Cloudflare Pages dashboard
-# Build output directory: src (no build step required)
-# Set Environment Variables: JWT_SECRET, CORS_ORIGIN
+npm run dev       # Frontend (http://localhost:5173)
+npm run pages:dev # Full stack with Functions + D1
 ```
 
----
+## Deployment
 
-## RBAC Roles
+1. Push to GitHub
+2. Connect repo to Cloudflare Pages in the dashboard
+3. Set environment variables in Cloudflare Pages settings
+4. Run `npm run db:init:remote` to initialize the production D1 database
 
-| Role | Permissions |
-|------|-------------|
-| `employee` | Submit tickets, view own tickets, propose schedules, submit surveys |
-| `it_staff` | View all tickets, update status, add notes, confirm schedules |
-| `admin` | Full access including dashboard stats and user management |
+## Project Phases
 
----
+| Phase | Status | Description |
+|-------|--------|-------------|
+| Phase 1 | ✅ Complete | Project foundation, schema, config, base UI |
+| Phase 2 | 🔜 Pending | Authentication & RBAC |
+| Phase 3 | 🔜 Pending | Ticket CRUD & Dashboard |
+| Phase 4 | 🔜 Pending | Repair Scheduling & Surveys |
+| Phase 5 | 🔜 Pending | Security Hardening & Domain Readiness |
 
-## Environment Variables
+## Roles
 
-| Variable | Description |
-|----------|-------------|
-| `JWT_SECRET` | Strong secret key for JWT signing |
-| `CORS_ORIGIN` | Production domain (e.g. `https://it-support.iloilocity.gov.ph`) |
-| `EXPIRY_HOURS` | JWT expiry in hours (default: 8) |
-
----
-
-## Domain Readiness
-
-To deploy under `it-support.iloilocity.gov.ph` or `iloilocity.app`:
-1. Add a custom domain in **Cloudflare Pages → Custom Domains**
-2. Update `CORS_ORIGIN` environment variable
-3. HTTPS is handled automatically by Cloudflare
-
----
-
-*Built for DASMO — Iloilo City Government IT Division*
+| Role | Access |
+|------|--------|
+| `employee` | Submit & track own tickets |
+| `it_staff` | Manage assigned tickets, scheduling |
+| `admin` | Full access, user management, reports |
