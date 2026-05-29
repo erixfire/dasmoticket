@@ -1,8 +1,8 @@
 /**
- * TEMP UTILITY — POST /api/setup/hash
- * Body: { password: string, setup_key: string }
- * Returns the PBKDF2 hash generated inside the Worker runtime.
- * Use the returned hash to UPDATE users SET password_hash = '...' directly.
+ * TEMP ONE-TIME HASH UTILITY — DELETE AFTER USE
+ * POST /api/setup/hash
+ * Body: { password: string, token: string }
+ * token must equal: iloilo2026init
  */
 import type { Env } from '../../_middleware'
 import { hashPassword } from '../../lib/crypto'
@@ -14,9 +14,11 @@ function json(data: unknown, status = 200) {
   })
 }
 
+const HARDCODED_TOKEN = 'iloilo2026init'
+
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
-  const body = await ctx.request.json() as { password?: string; setup_key?: string }
-  if (!ctx.env.SETUP_KEY || body.setup_key !== ctx.env.SETUP_KEY) {
+  const body = await ctx.request.json() as { password?: string; token?: string }
+  if (body.token !== HARDCODED_TOKEN) {
     return json({ error: 'Unauthorized' }, 401)
   }
   if (!body.password || body.password.length < 6) {
