@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { api } from '@/lib/api'
-import { StatusBadge } from '@/components/StatusBadge'
 import type { Ticket } from '@/types'
+import { StatusBadge, PriorityBadge, PageHeader, SkeletonStatCard, SkeletonTable, EmptyState } from '@/components/ui'
 import styles from './DashboardPage.module.css'
 
 interface Stats {
@@ -30,39 +30,54 @@ const STAT_CARDS = [
 
 export default function DashboardPage() {
   const { user } = useAuth()
-  const [stats, setStats] = useState<Stats | null>(null)
+  const [stats, setStats]             = useState<Stats | null>(null)
   const [surveyStats, setSurveyStats] = useState<SurveyStats | null>(null)
   const [recentTickets, setRecentTickets] = useState<Ticket[]>([])
+  const [loading, setLoading]         = useState(true)
+  const [ticketsLoading, setTicketsLoading] = useState(true)
 
   useEffect(() => {
-    api.dashboard.stats().then(r => setStats(r.data.stats as Stats)).catch(console.error)
-    api.tickets.list({ limit: '5' }).then(r => setRecentTickets(r.data.tickets)).catch(console.error)
+    api.dashboard.stats()
+      .then(r => setStats(r.data.stats as Stats))
+      .catch(console.error)
+      .finally(() => setLoading(false))
+
+    api.tickets.list({ limit: '5' })
+      .then(r => setRecentTickets(r.data.tickets))
+      .catch(console.error)
+      .finally(() => setTicketsLoading(false))
+
     if (user?.role === 'it_staff' || user?.role === 'admin') {
-      api.surveys.stats().then(r => setSurveyStats(r.data.stats)).catch(console.error)
+      api.surveys.stats()
+        .then(r => setSurveyStats(r.data.stats))
+        .catch(console.error)
     }
   }, [user])
 
   return (
     <div className={styles.page}>
-      <div className={styles.header}>
-        <div>
-          <h1>Dashboard</h1>
-          <p className={styles.welcome}>Welcome back, <strong>{user?.name}</strong></p>
-        </div>
-      </div>
+      <PageHeader
+        title="Dashboard"
+        subtitle={`Welcome back, ${user?.name ?? ''}  —  ${new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`}
+      />
 
+      {/* Stat Cards */}
       <div className={styles.statsGrid}>
-        {STAT_CARDS.map(({ key, label, icon, color }) => (
-          <div key={key} className={styles.statCard}>
-            <div className={styles.statIcon} style={{ background: `${color}18`, color }}>{icon}</div>
-            <div>
-              <div className={styles.statValue} style={{ color }}>{stats ? stats[key] : '—'}</div>
-              <div className={styles.statLabel}>{label}</div>
+        {loading
+          ? STAT_CARDS.map(c => <SkeletonStatCard key={c.key} />)
+          : STAT_CARDS.map(({ key, label, icon, color }) => (
+            <div key={key} className={styles.statCard}>
+              <div className={styles.statIcon} style={{ background: `${color}18`, color }}>{icon}</div>
+              <div>
+                <div className={styles.statValue} style={{ color }}>{stats ? stats[key] ?? 0 : '—'}</div>
+                <div className={styles.statLabel}>{label}</div>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        }
       </div>
 
+      {/* Survey banner — staff/admin only */}
       {surveyStats && (
         <div className={styles.surveyBanner}>
           <div className={styles.surveyAvg}>
@@ -76,29 +91,44 @@ export default function DashboardPage() {
                 ))}
               </div>
               <div className={styles.surveyLabel}>Service Satisfaction</div>
-              <div className={styles.surveySub}>{surveyStats.total} responses</div>
+              <div className={styles.surveySub}>{surveyStats.total} response{surveyStats.total !== 1 ? 's' : ''}</div>
             </div>
           </div>
           <a href="/surveys" className={styles.surveyLink}>View Full Report →</a>
         </div>
       )}
 
+      {/* Recent Tickets */}
       <div className={styles.section}>
         <div className={styles.sectionHeader}>
-          <h2>Recent Tickets</h2>
+          <h2 className={styles.sectionTitle}>Recent Tickets</h2>
           <a href="/tickets" className={styles.seeAll}>See all →</a>
         </div>
-        <div className={styles.ticketList}>
-          {recentTickets.length === 0 && <div className={styles.empty}>No tickets yet.</div>}
-          {recentTickets.map(t => (
-            <div key={t.id} className={styles.ticketRow}>
-              <code className={styles.ticketNum}>{t.ticket_number}</code>
-              <span className={styles.ticketTitle}>{t.title}</span>
-              <StatusBadge status={t.status} />
-              <span className={styles.ticketDate}>{new Date(t.created_at).toLocaleDateString('en-PH')}</span>
-            </div>
-          ))}
-        </div>
+
+        {ticketsLoading ? (
+          <SkeletonTable rows={5} cols={4} />
+        ) : recentTickets.length === 0 ? (
+          <EmptyState
+            icon="🎫"
+            title="No tickets yet"
+            description="Tickets you create or are assigned to will appear here."
+            action={{ label: 'Create a ticket', onClick: () => window.location.href = '/tickets' }}
+          />
+        ) : (
+          <div className={styles.ticketList}>
+            {recentTickets.map(t => (
+              <a key={t.id} href="/tickets" className={styles.ticketRow}>
+                <code className={styles.ticketNum}>{t.ticket_number}</code>
+                <span className={styles.ticketTitle}>{t.title}</span>
+                <PriorityBadge priority={t.priority} />
+                <StatusBadge status={t.status} />
+                <span className={styles.ticketDate}>
+                  {new Date(t.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}
+                </span>
+              </a>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

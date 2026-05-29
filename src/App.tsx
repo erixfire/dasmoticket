@@ -9,6 +9,7 @@ import SchedulePage from '@/pages/SchedulePage'
 import SurveyStatsPage from '@/pages/SurveyStatsPage'
 import AdminPage from '@/pages/AdminPage'
 import NotFoundPage from '@/pages/NotFoundPage'
+import { ToastContainer } from '@/components/ui'
 import { useAuth } from '@/context/AuthContext'
 
 function AppLayout({ children }: { children: React.ReactNode }) {
@@ -17,6 +18,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
     <>
       {user && <Sidebar />}
       {children}
+      <ToastContainer />
     </>
   )
 }
