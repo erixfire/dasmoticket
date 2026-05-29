@@ -1,179 +1,178 @@
 import { useState, useEffect, useCallback } from 'react'
-import { adminApi } from '@/lib/adminApi'
-import type { Department } from '@/types'
-import { SkeletonTable, EmptyState, Badge, toast, Spinner } from '@/components/ui'
-import styles from './AdminTab.module.css'
+import { api } from '@/lib/api'
+import { Spinner, toast } from '@/components/ui'
+import styles from './AdminTabs.module.css'
+
+interface Department {
+  id: number
+  name: string
+  head?: string
+  staff_count?: number
+  open_tickets?: number
+  created_at: string
+}
 
 export default function DepartmentsTab() {
-  const [departments, setDepartments] = useState<Department[]>([])
-  const [loading, setLoading]         = useState(false)
-  const [showCreate, setShowCreate]   = useState(false)
-  const [editDept, setEditDept]       = useState<Department | null>(null)
-  const [confirmDelete, setConfirmDelete] = useState<Department | null>(null)
+  const [depts, setDepts]       = useState<Department[]>([])
+  const [loading, setLoading]   = useState(true)
+  const [creating, setCreating] = useState(false)
+  const [newName, setNewName]   = useState('')
+  const [newHead, setNewHead]   = useState('')
+  const [saving, setSaving]     = useState(false)
+  const [editId, setEditId]     = useState<number | null>(null)
+  const [editName, setEditName] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await adminApi.departments.list()
-      setDepartments(res.departments)
-    } catch (e) {
-      toast('error', e instanceof Error ? e.message : 'Failed to load departments')
-    } finally { setLoading(false) }
+      const r = await api.departments.list()
+      setDepts(r.data.departments ?? r.data ?? [])
+    } catch { toast('error', 'Failed to load departments') }
+    setLoading(false)
   }, [])
 
   useEffect(() => { load() }, [load])
 
-  const handleDelete = async (dept: Department) => {
+  const handleCreate = async () => {
+    if (!newName.trim()) return
+    setSaving(true)
     try {
-      await adminApi.departments.delete(dept.id)
-      toast('success', `Department "${dept.name}" deleted.`)
-      setConfirmDelete(null)
-      load()
-    } catch (e) { toast('error', e instanceof Error ? e.message : 'Failed to delete') }
+      const r = await api.departments.create({ name: newName.trim(), head: newHead.trim() || undefined })
+      setDepts(d => [...d, r.data.department ?? r.data])
+      toast('success', `Department "${newName.trim()}" created`)
+      setNewName(''); setNewHead(''); setCreating(false)
+    } catch { toast('error', 'Failed to create department') }
+    setSaving(false)
+  }
+
+  const handleRename = async (d: Department) => {
+    if (!editName.trim() || editName.trim() === d.name) { setEditId(null); return }
+    setSaving(true)
+    try {
+      await api.departments.update(d.id, { name: editName.trim() })
+      setDepts(ds => ds.map(x => x.id === d.id ? { ...x, name: editName.trim() } : x))
+      toast('success', 'Department renamed')
+      setEditId(null)
+    } catch { toast('error', 'Failed to rename') }
+    setSaving(false)
+  }
+
+  const handleDelete = async (d: Department) => {
+    if (!window.confirm(`Delete department "${d.name}"? This cannot be undone.`)) return
+    try {
+      await api.departments.delete(d.id)
+      setDepts(ds => ds.filter(x => x.id !== d.id))
+      toast('success', `"${d.name}" deleted`)
+    } catch { toast('error', 'Failed to delete department') }
   }
 
   return (
-    <div>
+    <div className={styles.tabContent}>
+      {/* Header toolbar */}
       <div className={styles.toolbar}>
-        <span className={styles.count}>{departments.length} department{departments.length !== 1 ? 's' : ''}</span>
-        <button onClick={() => setShowCreate(true)} className={styles.createBtn}>+ New Department</button>
+        <span className={styles.countBadge}>{depts.length} department{depts.length !== 1 ? 's' : ''}</span>
+        <button className={styles.createBtn} onClick={() => setCreating(c => !c)}>
+          {creating ? '× Cancel' : '+ New Department'}
+        </button>
       </div>
 
-      {loading ? (
-        <SkeletonTable rows={4} cols={3} />
-      ) : departments.length === 0 ? (
-        <EmptyState
-          icon="🏢"
-          title="No departments yet"
-          description="Add departments to organize users and tickets."
-          action={{ label: '+ New Department', onClick: () => setShowCreate(true) }}
-        />
-      ) : (
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead>
-              <tr><th>#</th><th>Name</th><th>Code</th><th>Users</th><th></th></tr>
-            </thead>
-            <tbody>
-              {departments.map(d => (
-                <tr key={d.id}>
-                  <td className={styles.muted}>{d.id}</td>
-                  <td><strong>{d.name}</strong></td>
-                  <td><Badge variant="info">{d.code}</Badge></td>
-                  <td className={styles.muted}>{(d as Department & { user_count?: number }).user_count ?? '—'}</td>
-                  <td>
-                    <div className={styles.rowActions}>
-                      <button onClick={() => setEditDept(d)} className={styles.editBtn}>Edit</button>
-                      <button onClick={() => setConfirmDelete(d)} className={styles.deactBtn}>Delete</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Delete confirm modal */}
-      {confirmDelete && (
-        <ConfirmModal
-          title="Delete Department"
-          message={`Delete "${confirmDelete.name}"? This cannot be undone and may affect assigned users.`}
-          confirmLabel="Delete"
-          danger
-          onConfirm={() => handleDelete(confirmDelete)}
-          onCancel={() => setConfirmDelete(null)}
-        />
-      )}
-
-      {showCreate && (
-        <DeptFormModal
-          onClose={() => setShowCreate(false)}
-          onSaved={() => { setShowCreate(false); load(); toast('success', 'Department created.') }}
-        />
-      )}
-      {editDept && (
-        <DeptFormModal
-          dept={editDept}
-          onClose={() => setEditDept(null)}
-          onSaved={() => { setEditDept(null); load(); toast('success', 'Department updated.') }}
-        />
-      )}
-    </div>
-  )
-}
-
-function DeptFormModal({ dept, onClose, onSaved }: {
-  dept?: Department; onClose: () => void; onSaved: () => void
-}) {
-  const isEdit = !!dept
-  const [name, setName]       = useState(dept?.name ?? '')
-  const [code, setCode]       = useState(dept?.code ?? '')
-  const [error, setError]     = useState('')
-  const [loading, setLoading] = useState(false)
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); setError(''); setLoading(true)
-    try {
-      if (isEdit) await adminApi.departments.update(dept!.id, { name, code })
-      else await adminApi.departments.create({ name, code })
-      onSaved()
-    } catch (e) { setError(e instanceof Error ? e.message : 'Failed to save') }
-    finally { setLoading(false) }
-  }
-
-  return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
-        <div className={styles.modalHeader}>
-          <h2>{isEdit ? 'Edit Department' : 'New Department'}</h2>
-          <button onClick={onClose} className={styles.closeBtn} aria-label="Close">×</button>
-        </div>
-        <form onSubmit={handleSubmit} className={styles.form}>
-          {error && <div className={styles.formError}>{error}</div>}
-          <label className={styles.field}>Department Name *
-            <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Human Resources" required autoFocus />
-          </label>
-          <label className={styles.field}>
-            Code *
-            <span className={styles.hint}>Uppercase abbreviation, max 10 chars</span>
-            <input
-              value={code}
-              onChange={e => setCode(e.target.value.toUpperCase())}
-              placeholder="e.g. HR"
-              maxLength={10}
-              required
-            />
-          </label>
-          <div className={styles.formActions}>
-            <button type="button" onClick={onClose} className={styles.cancelBtn}>Cancel</button>
-            <button type="submit" className={styles.saveBtn} disabled={loading}>
-              {loading ? <Spinner size="sm" /> : null}
-              {loading ? 'Saving...' : isEdit ? 'Save Changes' : 'Create'}
+      {/* Create form */}
+      {creating && (
+        <div className={styles.createCard}>
+          <h3 className={styles.createTitle}>New Department</h3>
+          <div className={styles.createRow}>
+            <div className={styles.fieldGroup}>
+              <label className={styles.fieldLabel}>Name <span className={styles.required}>*</span></label>
+              <input
+                className={styles.fieldInput}
+                placeholder="e.g. Human Resources"
+                value={newName}
+                onChange={e => setNewName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleCreate()}
+                autoFocus
+              />
+            </div>
+            <div className={styles.fieldGroup}>
+              <label className={styles.fieldLabel}>Department Head</label>
+              <input
+                className={styles.fieldInput}
+                placeholder="Name of head (optional)"
+                value={newHead}
+                onChange={e => setNewHead(e.target.value)}
+              />
+            </div>
+            <button
+              className={`${styles.actionBtn} ${styles.actionSave}`}
+              onClick={handleCreate}
+              disabled={saving || !newName.trim()}
+              style={{ alignSelf: 'flex-end', height: 40, padding: '0 1.25rem' }}
+            >
+              {saving ? 'Creating...' : 'Create'}
             </button>
           </div>
-        </form>
-      </div>
-    </div>
-  )
-}
-
-function ConfirmModal({ title, message, confirmLabel = 'Confirm', danger = false, onConfirm, onCancel }: {
-  title: string; message: string; confirmLabel?: string
-  danger?: boolean; onConfirm: () => void; onCancel: () => void
-}) {
-  return (
-    <div className={styles.overlay} onClick={onCancel}>
-      <div className={styles.confirmModal} onClick={e => e.stopPropagation()} role="alertdialog" aria-modal="true">
-        <h3 className={styles.confirmTitle}>{title}</h3>
-        <p className={styles.confirmMessage}>{message}</p>
-        <div className={styles.confirmActions}>
-          <button onClick={onCancel} className={styles.cancelBtn}>Cancel</button>
-          <button onClick={onConfirm} className={danger ? styles.dangerBtn : styles.saveBtn} autoFocus>
-            {confirmLabel}
-          </button>
         </div>
-      </div>
+      )}
+
+      {/* Dept grid */}
+      {loading ? (
+        <div className={styles.center}><Spinner size="lg" /></div>
+      ) : depts.length === 0 ? (
+        <div className={styles.empty}>
+          <div className={styles.emptyIcon}>🏢</div>
+          <p>No departments yet. Create one above.</p>
+        </div>
+      ) : (
+        <div className={styles.deptGrid}>
+          {depts.map(d => (
+            <div key={d.id} className={styles.deptCard}>
+              <div className={styles.deptCardHeader}>
+                <div className={styles.deptIconWell}>🏢</div>
+                <div className={styles.deptMeta}>
+                  {editId === d.id ? (
+                    <input
+                      className={styles.inlineInput}
+                      value={editName}
+                      onChange={e => setEditName(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleRename(d); if (e.key === 'Escape') setEditId(null) }}
+                      autoFocus
+                    />
+                  ) : (
+                    <div className={styles.deptName}>{d.name}</div>
+                  )}
+                  {d.head && <div className={styles.deptHead}>Head: {d.head}</div>}
+                </div>
+              </div>
+              <div className={styles.deptStats}>
+                <div className={styles.deptStat}>
+                  <span className={styles.deptStatVal}>{d.staff_count ?? '—'}</span>
+                  <span className={styles.deptStatLabel}>Staff</span>
+                </div>
+                <div className={styles.deptStat}>
+                  <span className={styles.deptStatVal}>{d.open_tickets ?? '—'}</span>
+                  <span className={styles.deptStatLabel}>Open Tickets</span>
+                </div>
+                <div className={styles.deptStat}>
+                  <span className={styles.deptStatVal}>{new Date(d.created_at).toLocaleDateString('en-PH', { month: 'short', year: 'numeric' })}</span>
+                  <span className={styles.deptStatLabel}>Created</span>
+                </div>
+              </div>
+              <div className={styles.deptActions}>
+                {editId === d.id ? (
+                  <>
+                    <button className={`${styles.actionBtn} ${styles.actionSave}`} onClick={() => handleRename(d)} disabled={saving}>{saving ? '...' : '✓ Rename'}</button>
+                    <button className={styles.actionBtn} onClick={() => setEditId(null)}>×</button>
+                  </>
+                ) : (
+                  <>
+                    <button className={styles.actionBtn} onClick={() => { setEditId(d.id); setEditName(d.name) }}>✏️ Rename</button>
+                    <button className={`${styles.actionBtn} ${styles.actionDeactivate}`} onClick={() => handleDelete(d)}>🗑 Delete</button>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

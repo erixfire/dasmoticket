@@ -9,66 +9,71 @@
   --nm-muted:       #4a5568;
   --nm-accent:      #ff4757;
   --nm-recessed:    #d1d9e6;
-  --s-card: 8px 8px 16px var(--nm-shadow-dark), -8px -8px 16px var(--nm-shadow-lite);
-  --s-small: 5px 5px 10px var(--nm-shadow-dark), -5px -5px 10px var(--nm-shadow-lite);
+  --s-card:   8px 8px 16px var(--nm-shadow-dark), -8px -8px 16px var(--nm-shadow-lite);
+  --s-small:  5px 5px 10px var(--nm-shadow-dark), -5px -5px 10px var(--nm-shadow-lite);
   --s-recess: inset 4px 4px 8px var(--nm-shadow-dark), inset -4px -4px 8px var(--nm-shadow-lite);
-  --s-press: inset 6px 6px 12px var(--nm-shadow-dark), inset -6px -6px 12px var(--nm-shadow-lite);
-  --s-float: 12px 12px 24px var(--nm-shadow-dark), -12px -12px 24px var(--nm-shadow-lite), inset 1px 1px 0 rgba(255,255,255,0.5);
+  --s-press:  inset 6px 6px 12px var(--nm-shadow-dark), inset -6px -6px 12px var(--nm-shadow-lite);
 }
 
 .page {
   margin-left: 240px;
-  padding: 2rem 2.25rem;
   min-height: 100vh;
-  background-color: var(--nm-bg);
+  padding: 2rem 2.25rem 4rem;
+  background: var(--nm-bg);
   background-image:
-    radial-gradient(ellipse at 5% 5%, rgba(255,255,255,0.38) 0%, transparent 55%),
-    linear-gradient(rgba(100,116,139,0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(100,116,139,0.045) 1px, transparent 1px);
-  background-size: auto, 40px 40px, 40px 40px;
+    linear-gradient(rgba(186,190,204,0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(186,190,204,0.18) 1px, transparent 1px);
+  background-size: 28px 28px;
+  position: relative;
+}
+.page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  left: 240px;
+  background: radial-gradient(ellipse at 10% 0%, rgba(255,255,255,0.55) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
 }
 
-/* Tab strip */
 .tabs {
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 1.75rem;
-  background: var(--nm-recessed);
-  box-shadow: var(--s-recess);
-  border-radius: 14px;
-  padding: 0.375rem;
+  margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 1;
+  flex-wrap: wrap;
 }
 
 .tab {
-  flex: 1;
-  padding: 0.6rem 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 40px;
+  padding: 0 1.25rem;
+  border-radius: 12px;
   border: none;
-  border-radius: 10px;
-  background: transparent;
+  background: var(--nm-bg);
+  box-shadow: var(--s-small);
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--nm-muted);
   cursor: pointer;
-  transition: box-shadow 150ms ease, background 150ms ease, color 150ms ease, transform 150ms ease;
+  transition: box-shadow 150ms, transform 150ms, color 150ms;
 }
+.tab:hover    { box-shadow: var(--s-card); transform: translateY(-1px); color: var(--nm-text); }
+.tab:active   { box-shadow: var(--s-press); transform: translateY(1px); }
+.tabActive    { box-shadow: var(--s-recess); color: var(--nm-accent); font-weight: 800; transform: none !important; }
 
-.tab:hover {
-  color: var(--nm-text);
-  background: rgba(255,255,255,0.25);
-}
-
-.tabActive {
-  background: var(--nm-bg);
-  color: var(--nm-accent);
-  box-shadow: var(--s-small);
-  transform: translateY(-1px);
+.body {
+  position: relative;
+  z-index: 1;
 }
 
 @media (max-width: 768px) {
-  .page { margin-left: 60px; padding: 1rem; }
-  .tabs { flex-wrap: wrap; }
-  .tab  { flex: none; }
+  .page { margin-left: 60px; padding: 1.25rem 1rem 3rem; }
+  .page::before { left: 60px; }
 }
