@@ -2,6 +2,7 @@ import { useState } from 'react'
 import UsersTab from './admin/UsersTab'
 import DepartmentsTab from './admin/DepartmentsTab'
 import AuditLogsTab from './admin/AuditLogsTab'
+import { PageHeader } from '@/components/ui'
 import styles from './AdminPage.module.css'
 
 type Tab = 'users' | 'departments' | 'audit'
@@ -17,10 +18,10 @@ export default function AdminPage() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.header}>
-        <h1>Admin Panel</h1>
-        <p className={styles.subtitle}>Manage users, departments, and system activity</p>
-      </div>
+      <PageHeader
+        title="Admin Panel"
+        subtitle="Manage users, departments, and system activity"
+      />
 
       <div className={styles.tabs}>
         {TABS.map(t => (
@@ -28,8 +29,9 @@ export default function AdminPage() {
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`${styles.tab} ${tab === t.key ? styles.tabActive : ''}`}
+            aria-selected={tab === t.key}
           >
-            <span>{t.icon}</span>
+            <span aria-hidden="true">{t.icon}</span>
             <span>{t.label}</span>
           </button>
         ))}
