@@ -5,6 +5,8 @@ import Sidebar from '@/components/Sidebar'
 import LoginPage from '@/pages/LoginPage'
 import DashboardPage from '@/pages/DashboardPage'
 import TicketsPage from '@/pages/TicketsPage'
+import TicketDetailPage from '@/pages/TicketDetailPage'
+import CreateTicketPage from '@/pages/CreateTicketPage'
 import SchedulePage from '@/pages/SchedulePage'
 import SurveyStatsPage from '@/pages/SurveyStatsPage'
 import AdminPage from '@/pages/AdminPage'
@@ -32,6 +34,8 @@ export default function App() {
           <Route path="/" element={<ProtectedRoute><Navigate to="/dashboard" replace /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
           <Route path="/tickets" element={<ProtectedRoute><TicketsPage /></ProtectedRoute>} />
+          <Route path="/tickets/new" element={<ProtectedRoute><CreateTicketPage /></ProtectedRoute>} />
+          <Route path="/tickets/:id" element={<ProtectedRoute><TicketDetailPage /></ProtectedRoute>} />
           <Route path="/schedule" element={<ProtectedRoute><SchedulePage /></ProtectedRoute>} />
           <Route path="/surveys" element={<ProtectedRoute roles={['it_staff','admin']}><SurveyStatsPage /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute roles={['admin']}><AdminPage /></ProtectedRoute>} />
