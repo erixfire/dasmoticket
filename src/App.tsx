@@ -11,6 +11,7 @@ import NotificationsPage from '@/pages/NotificationsPage'
 import SchedulePage from '@/pages/SchedulePage'
 import SurveyStatsPage from '@/pages/SurveyStatsPage'
 import AdminPage from '@/pages/AdminPage'
+import SettingsPage from '@/pages/SettingsPage'
 import NotFoundPage from '@/pages/NotFoundPage'
 import { ToastContainer } from '@/components/ui'
 import { useAuth } from '@/context/AuthContext'
@@ -41,6 +42,7 @@ export default function App() {
           <Route path="/schedule" element={<ProtectedRoute><SchedulePage /></ProtectedRoute>} />
           <Route path="/surveys" element={<ProtectedRoute roles={['it_staff','admin']}><SurveyStatsPage /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute roles={['admin']}><AdminPage /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </AppLayout>
