@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
 
-/* ── Shared tokens ────────────────────────────────────────────────── */
+/* ── Shared tokens ─────────────────────────────────────────────── */
 :root {
   --nm-bg:          #e0e5ec;
   --nm-surface:     #e0e5ec;
@@ -19,7 +19,7 @@
   --s-glow:   0 0 0 2px var(--nm-accent), 0 0 12px rgba(255,71,87,0.35);
 }
 
-/* ── Panel shell ──────────────────────────────────────────────── */
+/* ── Panel shell ───────────────────────────────────────────────── */
 .panel {
   background: var(--nm-surface);
   border-radius: 20px;
@@ -29,8 +29,6 @@
   background-image: radial-gradient(ellipse at 12% 8%, rgba(255,255,255,0.5) 0%, transparent 55%);
   margin-bottom: 1.5rem;
 }
-
-/* Corner screws */
 .panel::before,
 .panel::after {
   content: '';
@@ -69,90 +67,50 @@
   text-shadow: 0 1px 0 rgba(255,255,255,0.85);
 }
 
-/* ── Data table ─────────────────────────────────────────────── */
-.table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.table th {
-  padding: 0.75rem 1.375rem;
-  text-align: left;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--nm-muted);
-  border-bottom: 1px solid rgba(186,190,204,0.4);
-  background: rgba(186,190,204,0.08);
-  text-shadow: 0 1px 0 rgba(255,255,255,0.85);
-}
-
-.table td {
-  padding: 0.875rem 1.375rem;
-  font-size: 0.875rem;
-  color: var(--nm-text);
-  border-bottom: 1px solid rgba(186,190,204,0.25);
-  vertical-align: middle;
-}
-
-.table tr:last-child td { border-bottom: none; }
-
-.table tbody tr {
-  transition: background 120ms ease;
-}
-.table tbody tr:hover {
-  background: rgba(186,190,204,0.14);
-}
-
-/* ── Mono chips (IDs, codes) ───────────────────────────────── */
-.chip {
-  display: inline-block;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--nm-accent);
-  background: var(--nm-recessed);
-  border-radius: 6px;
-  padding: 0.15rem 0.45rem;
-  box-shadow: var(--s-recess);
-}
-
-/* ── Avatar ────────────────────────────────────────────────── */
-.avatarCell {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.avatar {
-  width: 34px; height: 34px;
-  border-radius: 50%;
-  background: var(--nm-recessed);
-  box-shadow:
-    inset 2px 2px 5px var(--nm-shadow-dark),
-    inset -2px -2px 5px var(--nm-shadow-lite),
-    0 0 0 1px rgba(186,190,204,0.4);
-  display: flex; align-items: center; justify-content: center;
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: 700;
-  font-size: 0.8125rem;
-  color: var(--nm-muted);
-  flex-shrink: 0;
-}
-
-.userName { font-weight: 600; font-size: 0.875rem; color: var(--nm-text); }
-.userEmail { font-size: 0.75rem; color: var(--nm-muted); font-family: 'JetBrains Mono', monospace; }
-
-/* ── Toolbar (search + actions) ─────────────────────────────── */
+/* ── Toolbar ───────────────────────────────────────────────────── */
 .toolbar {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  margin-bottom: 1.25rem;
   flex-wrap: wrap;
 }
 
+.count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--nm-muted);
+  text-shadow: 0 1px 0 rgba(255,255,255,0.85);
+  margin-right: auto;
+}
+
+.createBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 40px;
+  padding: 0 1.1rem;
+  border-radius: 10px;
+  border: none;
+  background: var(--nm-accent);
+  color: #fff;
+  box-shadow: 4px 4px 8px rgba(166,50,60,0.4), -4px -4px 8px rgba(255,120,130,0.25), inset 0 1px 0 rgba(255,255,255,0.2);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: box-shadow 150ms ease, transform 150ms ease;
+  white-space: nowrap;
+}
+.createBtn:hover  { background: #ff5e6b; box-shadow: 6px 6px 12px rgba(166,50,60,0.45), -6px -6px 12px rgba(255,120,130,0.3); transform: translateY(-1px); }
+.createBtn:active { box-shadow: inset 3px 3px 6px rgba(140,30,40,0.5), inset -3px -3px 6px rgba(255,100,110,0.2); transform: translateY(1px); }
+
+/* ── Search well ───────────────────────────────────────────────── */
 .searchWell {
   display: flex;
   align-items: center;
@@ -187,7 +145,171 @@
 }
 .searchInput::placeholder { color: var(--nm-muted); opacity: 0.4; }
 
-/* ── Buttons ────────────────────────────────────────────────── */
+/* ── Table wrapper ─────────────────────────────────────────────── */
+.tableWrap {
+  background: var(--nm-surface);
+  border-radius: 20px;
+  box-shadow: var(--s-card);
+  overflow: hidden;
+  position: relative;
+  background-image: radial-gradient(ellipse at 12% 8%, rgba(255,255,255,0.5) 0%, transparent 55%);
+  margin-bottom: 1.5rem;
+}
+.tableWrap::before,
+.tableWrap::after {
+  content: '';
+  position: absolute;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 35%,
+    rgba(255,255,255,0.65) 0%,
+    var(--nm-recessed) 42%,
+    var(--nm-shadow-dark) 100%
+  );
+  box-shadow: inset 0.5px 0.5px 1px rgba(0,0,0,0.18);
+  z-index: 1;
+}
+.tableWrap::before { top: 12px; left: 12px; }
+.tableWrap::after  { top: 12px; right: 12px; }
+
+/* ── Data table ─────────────────────────────────────────────────── */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  padding: 0.75rem 1.375rem;
+  text-align: left;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--nm-muted);
+  border-bottom: 1px solid rgba(186,190,204,0.4);
+  background: rgba(186,190,204,0.08);
+  text-shadow: 0 1px 0 rgba(255,255,255,0.85);
+}
+
+.table td {
+  padding: 0.875rem 1.375rem;
+  font-size: 0.875rem;
+  color: var(--nm-text);
+  border-bottom: 1px solid rgba(186,190,204,0.25);
+  vertical-align: middle;
+}
+
+.table tr:last-child td { border-bottom: none; }
+
+.table tbody tr { transition: background 120ms ease; }
+.table tbody tr:hover { background: rgba(186,190,204,0.14); }
+
+.rowInactive { opacity: 0.5; }
+
+/* ── Name cell ─────────────────────────────────────────────────── */
+.nameCell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* ── Avatar ────────────────────────────────────────────────────── */
+.avatarCell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.avatar {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: var(--nm-recessed);
+  box-shadow:
+    inset 2px 2px 5px var(--nm-shadow-dark),
+    inset -2px -2px 5px var(--nm-shadow-lite),
+    0 0 0 1px rgba(186,190,204,0.4);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  color: var(--nm-muted);
+  flex-shrink: 0;
+}
+
+.avatarInactive {
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+
+.userName  { font-weight: 600; font-size: 0.875rem; color: var(--nm-text); }
+.userEmail { font-size: 0.75rem; color: var(--nm-muted); font-family: 'JetBrains Mono', monospace; }
+
+/* ── Misc text helpers ─────────────────────────────────────────── */
+.mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--nm-muted);
+}
+
+.muted { color: var(--nm-muted); opacity: 0.55; }
+
+/* ── Chips ─────────────────────────────────────────────────────── */
+.chip {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--nm-accent);
+  background: var(--nm-recessed);
+  border-radius: 6px;
+  padding: 0.15rem 0.45rem;
+  box-shadow: var(--s-recess);
+}
+
+/* ── Row action buttons ────────────────────────────────────────── */
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.editBtn {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 0.75rem;
+  border-radius: 8px;
+  border: none;
+  background: var(--nm-bg);
+  box-shadow: var(--s-small);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--nm-muted);
+  cursor: pointer;
+  transition: box-shadow 150ms, transform 150ms, color 150ms;
+  white-space: nowrap;
+}
+.editBtn:hover  { box-shadow: var(--s-card); transform: translateY(-1px); color: var(--nm-text); }
+.editBtn:active { box-shadow: var(--s-press); transform: translateY(1px); }
+
+.deactBtn {
+  composes: editBtn;
+  color: var(--nm-accent);
+}
+.deactBtn:hover { color: var(--nm-accent); }
+
+.reactBtn {
+  composes: editBtn;
+  color: #16a34a;
+}
+.reactBtn:hover { color: #16a34a; }
+
+/* ── Buttons ───────────────────────────────────────────────────── */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -226,7 +348,7 @@
 }
 .btnDanger:hover { color: var(--nm-accent); }
 
-/* ── Inline form (add / edit rows) ───────────────────────────── */
+/* ── Inline form ───────────────────────────────────────────────── */
 .formRow {
   display: flex;
   gap: 0.75rem;
@@ -272,10 +394,228 @@
 }
 .formInput:focus,
 .formSelect:focus { box-shadow: var(--s-recess), 0 0 0 2px var(--nm-accent), 0 0 10px rgba(255,71,87,0.3); }
+.formSelect {
+  cursor: pointer; appearance: none; padding-right: 2rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%234a5568'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 0.75rem center;
+}
 
-.formSelect { cursor: pointer; appearance: none; padding-right: 2rem; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%234a5568'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.75rem center; }
+/* ── Modal overlay ─────────────────────────────────────────────── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(44,62,80,0.45);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
 
-/* ── Log entry rows (Audit) ───────────────────────────────── */
+.modal {
+  background: var(--nm-surface);
+  border-radius: 20px;
+  box-shadow: var(--s-float);
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  background-image: radial-gradient(ellipse at 10% 5%, rgba(255,255,255,0.55) 0%, transparent 55%);
+  animation: modalIn 220ms cubic-bezier(0.175,0.885,0.32,1.275);
+}
+
+@keyframes modalIn {
+  from { transform: scale(0.92) translateY(12px); opacity: 0; }
+  to   { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem 0;
+}
+
+.modalHeader h2 {
+  font-size: 1.0625rem;
+  font-weight: 800;
+  color: var(--nm-text);
+  text-shadow: 0 1px 0 rgba(255,255,255,0.9);
+  letter-spacing: -0.01em;
+}
+
+.closeBtn {
+  width: 32px; height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: var(--nm-recessed);
+  box-shadow: var(--s-recess);
+  font-size: 1.125rem;
+  line-height: 1;
+  color: var(--nm-muted);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: color 150ms, box-shadow 150ms;
+}
+.closeBtn:hover { color: var(--nm-accent); box-shadow: var(--s-small); }
+
+/* ── Modal form ─────────────────────────────────────────────────── */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+
+.formError {
+  background: rgba(255,71,87,0.08);
+  border-left: 3px solid var(--nm-accent);
+  border-radius: 8px;
+  padding: 0.625rem 0.875rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--nm-accent);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--nm-muted);
+  text-shadow: 0 1px 0 rgba(255,255,255,0.85);
+}
+
+.field input,
+.field select {
+  height: 42px;
+  padding: 0 0.875rem;
+  border: none;
+  border-radius: 10px;
+  background: var(--nm-recessed);
+  box-shadow: var(--s-recess);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--nm-text);
+  outline: none;
+  caret-color: var(--nm-accent);
+  transition: box-shadow 200ms;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.field input:focus,
+.field select:focus { box-shadow: var(--s-recess), 0 0 0 2px var(--nm-accent), 0 0 10px rgba(255,71,87,0.25); }
+.field select { cursor: pointer; appearance: none; padding-right: 2rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%234a5568'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 0.75rem center;
+}
+
+.hint {
+  font-size: 0.6rem;
+  font-weight: 400;
+  color: var(--nm-muted);
+  opacity: 0.6;
+  text-transform: none;
+  letter-spacing: 0;
+  margin-top: -0.125rem;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 0.25rem;
+}
+
+.cancelBtn {
+  height: 40px;
+  padding: 0 1.125rem;
+  border-radius: 10px;
+  border: none;
+  background: var(--nm-bg);
+  box-shadow: var(--s-small);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--nm-muted);
+  cursor: pointer;
+  transition: box-shadow 150ms, transform 150ms;
+}
+.cancelBtn:hover  { box-shadow: var(--s-card); transform: translateY(-1px); }
+.cancelBtn:active { box-shadow: var(--s-press); transform: translateY(1px); }
+
+.saveBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 40px;
+  padding: 0 1.25rem;
+  border-radius: 10px;
+  border: none;
+  background: var(--nm-accent);
+  color: #fff;
+  box-shadow: 4px 4px 8px rgba(166,50,60,0.4), -4px -4px 8px rgba(255,120,130,0.25), inset 0 1px 0 rgba(255,255,255,0.2);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: box-shadow 150ms, transform 150ms;
+}
+.saveBtn:hover    { background: #ff5e6b; box-shadow: 6px 6px 12px rgba(166,50,60,0.45), -6px -6px 12px rgba(255,120,130,0.3); transform: translateY(-1px); }
+.saveBtn:active   { box-shadow: inset 3px 3px 6px rgba(140,30,40,0.5), inset -3px -3px 6px rgba(255,100,110,0.2); transform: translateY(1px); }
+.saveBtn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+.dangerBtn {
+  composes: saveBtn;
+  background: var(--nm-accent);
+}
+
+/* ── Confirm modal ──────────────────────────────────────────────── */
+.confirmModal {
+  background: var(--nm-surface);
+  border-radius: 20px;
+  box-shadow: var(--s-float);
+  width: 100%;
+  max-width: 380px;
+  padding: 1.75rem 1.75rem 1.5rem;
+  position: relative;
+  background-image: radial-gradient(ellipse at 10% 5%, rgba(255,255,255,0.55) 0%, transparent 55%);
+  animation: modalIn 220ms cubic-bezier(0.175,0.885,0.32,1.275);
+}
+
+.confirmTitle {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--nm-text);
+  text-shadow: 0 1px 0 rgba(255,255,255,0.9);
+  margin: 0 0 0.625rem;
+}
+
+.confirmMessage {
+  font-size: 0.875rem;
+  color: var(--nm-muted);
+  line-height: 1.6;
+  margin: 0 0 1.5rem;
+}
+
+.confirmActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+/* ── Audit log rows ─────────────────────────────────────────────── */
 .logRow {
   display: grid;
   grid-template-columns: 160px 1fr auto;
@@ -308,7 +648,7 @@
   font-family: 'JetBrains Mono', monospace;
 }
 
-/* ── Vent strip ──────────────────────────────────────────────── */
+/* ── Vent strip ─────────────────────────────────────────────────── */
 .ventStrip {
   display: flex;
   gap: 5px;
@@ -322,7 +662,7 @@
   box-shadow: var(--s-recess);
 }
 
-/* ── Pagination ────────────────────────────────────────────── */
+/* ── Pagination ─────────────────────────────────────────────────── */
 .pagination {
   display: flex;
   align-items: center;
@@ -330,32 +670,40 @@
   gap: 0.5rem;
   padding: 1rem 1.375rem;
   border-top: 1px solid rgba(186,190,204,0.3);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6875rem;
+  color: var(--nm-muted);
 }
 
 .pageBtn {
-  width: 34px; height: 34px;
+  height: 34px;
+  padding: 0 0.875rem;
   border: none;
   border-radius: 8px;
   background: var(--nm-bg);
   box-shadow: var(--s-small);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   color: var(--nm-muted);
   cursor: pointer;
   transition: box-shadow 150ms, transform 150ms, color 150ms;
   display: flex; align-items: center; justify-content: center;
+  white-space: nowrap;
 }
-.pageBtn:hover  { box-shadow: var(--s-card); transform: translateY(-1px); color: var(--nm-text); }
-.pageBtn:active { box-shadow: var(--s-press); transform: translateY(1px); }
-.pageBtnActive  { box-shadow: var(--s-recess); color: var(--nm-accent); transform: none !important; cursor: default; }
+.pageBtn:hover    { box-shadow: var(--s-card); transform: translateY(-1px); color: var(--nm-text); }
+.pageBtn:active   { box-shadow: var(--s-press); transform: translateY(1px); }
+.pageBtn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; box-shadow: var(--s-small); }
+.pageBtnActive    { box-shadow: var(--s-recess); color: var(--nm-accent); cursor: default; }
 
 @media (max-width: 768px) {
   .table th, .table td { padding: 0.6rem 0.875rem; }
   .logRow { grid-template-columns: 1fr; gap: 0.25rem; }
   .formRow { flex-direction: column; }
+  .modal { max-width: 100%; border-radius: 16px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .btn, .btnPrimary, .pageBtn { transition: none; }
+  .btn, .btnPrimary, .pageBtn, .createBtn, .saveBtn, .cancelBtn,
+  .editBtn, .deactBtn, .reactBtn, .modal, .confirmModal { transition: none; animation: none; }
 }
