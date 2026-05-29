@@ -1,7 +1,7 @@
 /* ── Fonts ─────────────────────────────────────────────────────── */
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
 
-/* ── Tokens ─────────────────────────────────────────────────────── */
+/* ── Design tokens ──────────────────────────────────────────────── */
 :root {
   --nm-bg:          #e0e5ec;
   --nm-surface:     #e0e5ec;
@@ -21,14 +21,12 @@
   --shadow-glow:    0 0 0 2px var(--nm-accent), 0 0 12px rgba(255,71,87,0.35);
 }
 
-/* ── Chassis (full-page background) ────────────────────────────── */
+/* ── Chassis (full-page base) ───────────────────────────────────── */
 .chassis {
   min-height: 100vh;
   background-color: var(--nm-bg);
   background-image:
-    /* subtle top-left lighting hotspot */
     radial-gradient(ellipse at 10% 10%, rgba(255,255,255,0.45) 0%, transparent 60%),
-    /* grid blueprint lines */
     linear-gradient(rgba(100,116,139,0.06) 1px, transparent 1px),
     linear-gradient(90deg, rgba(100,116,139,0.06) 1px, transparent 1px);
   background-size: auto, 40px 40px, 40px 40px;
@@ -38,21 +36,20 @@
   overflow: hidden;
 }
 
-/* SVG noise texture overlay */
 .noise {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.25;
+  opacity: 0.22;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
   background-repeat: repeat;
   mix-blend-mode: overlay;
 }
 
-/* ── Brand panel (left) ─────────────────────────────────────────── */
+/* ── Brand panel (left, desktop only) ──────────────────────────── */
 .brand {
-  display: none; /* hidden on mobile */
+  display: none;
   flex: 1;
   background: linear-gradient(160deg, #2c3e50 0%, #1a252f 100%);
   position: relative;
@@ -64,28 +61,40 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 30% 20%, rgba(255,71,87,0.12) 0%, transparent 65%);
+  background: radial-gradient(ellipse at 30% 20%, rgba(255,71,87,0.1) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+/* Subtle grid on brand panel */
+.brand::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
   pointer-events: none;
 }
 
 .brandInner {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
   height: 100%;
   padding: 3rem 3.5rem;
-  gap: 0;
 }
 
+/* Status LED badge */
 .statusBadge {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
   border-radius: 999px;
   padding: 0.3rem 0.75rem;
   margin-bottom: 2.5rem;
@@ -103,7 +112,7 @@
 
 @keyframes ledPulse {
   0%, 100% { box-shadow: 0 0 8px 2px rgba(34,197,94,0.7); opacity: 1; }
-  50%       { box-shadow: 0 0 4px 1px rgba(34,197,94,0.4); opacity: 0.75; }
+  50%       { box-shadow: 0 0 4px 1px rgba(34,197,94,0.35); opacity: 0.7; }
 }
 
 .statusText {
@@ -115,44 +124,57 @@
   text-transform: uppercase;
 }
 
-.logoWell {
-  width: 80px;
-  height: 80px;
+/* Iloilo City seal well */
+.sealWell {
+  width: 108px;
+  height: 108px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.05);
   box-shadow:
-    inset 3px 3px 8px rgba(0,0,0,0.35),
-    inset -3px -3px 8px rgba(255,255,255,0.06);
+    inset 3px 3px 10px rgba(0,0,0,0.4),
+    inset -3px -3px 8px rgba(255,255,255,0.05),
+    0 0 0 1px rgba(255,255,255,0.08);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
+  padding: 10px;
 }
 
-.logoImg {
-  width: 52px;
-  height: 52px;
-  object-fit: contain;
-  filter: brightness(0) invert(1) opacity(0.9);
+.sealSvg {
+  width: 84px;
+  height: 84px;
+  color: rgba(255,255,255,0.82);
+}
+
+/* City / office labels */
+.cityLabel {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--nm-accent);
+  margin-bottom: 0.35rem;
 }
 
 .brandTitle {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 2.75rem;
+  font-size: 3rem;
   font-weight: 700;
   color: #ffffff;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   line-height: 1;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.45);
   margin-bottom: 0.5rem;
 }
 
-.brandSubtitle {
-  font-size: 0.9375rem;
+.brandFull {
+  font-size: 0.8125rem;
   font-weight: 500;
   color: #a8b2d1;
-  letter-spacing: 0.03em;
-  margin-bottom: 2rem;
+  line-height: 1.55;
+  margin-bottom: 1.75rem;
 }
 
 .divider {
@@ -161,24 +183,14 @@
   background: var(--nm-accent);
   border-radius: 2px;
   box-shadow: 0 0 10px rgba(255,71,87,0.5);
-  margin-bottom: 2rem;
-}
-
-.brandDept {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--nm-accent);
-  margin-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
 }
 
 .brandUnit {
-  font-size: 0.875rem;
-  color: #8899aa;
+  font-size: 0.8125rem;
+  color: #6b7a8d;
   line-height: 1.6;
-  max-width: 26ch;
+  max-width: 28ch;
 }
 
 .vents {
@@ -191,11 +203,11 @@
   width: 3px;
   height: 28px;
   border-radius: 9999px;
-  background: rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.07);
   box-shadow: inset 1px 1px 2px rgba(0,0,0,0.3), inset -1px -1px 2px rgba(255,255,255,0.04);
 }
 
-/* ── Login module (right) ───────────────────────────────────────── */
+/* ── Login module (right panel) ─────────────────────────────────── */
 .module {
   position: relative;
   z-index: 1;
@@ -206,7 +218,6 @@
   border-radius: 20px;
   box-shadow: var(--shadow-float);
   padding: 3rem 2.5rem 2.5rem;
-  /* Chassis texture */
   background-image: radial-gradient(ellipse at 15% 10%, rgba(255,255,255,0.6) 0%, transparent 55%);
 }
 
@@ -218,16 +229,50 @@
   border-radius: 50%;
   background: radial-gradient(
     circle at 35% 35%,
-    rgba(255,255,255,0.6) 0%,
+    rgba(255,255,255,0.65) 0%,
     var(--nm-recessed-bg) 40%,
     var(--nm-shadow-dark) 100%
   );
   box-shadow: inset 1px 1px 2px rgba(0,0,0,0.2), inset -1px -1px 1px rgba(255,255,255,0.6);
 }
-.screw[data-pos="tl"] { top: 14px;  left:  14px; }
-.screw[data-pos="tr"] { top: 14px;  right: 14px; }
+.screw[data-pos="tl"] { top: 14px; left: 14px; }
+.screw[data-pos="tr"] { top: 14px; right: 14px; }
 .screw[data-pos="bl"] { bottom: 14px; left: 14px; }
 .screw[data-pos="br"] { bottom: 14px; right: 14px; }
+
+/* Mobile-only header with seal */
+.mobileHeader {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.mobileSeal {
+  width: 52px;
+  height: 52px;
+  color: var(--nm-muted);
+  flex-shrink: 0;
+}
+
+.mobileCityLabel {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--nm-accent);
+  margin-bottom: 0.2rem;
+}
+
+.mobileOffice {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--nm-text);
+  letter-spacing: 0.06em;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.9);
+}
 
 .moduleHeader {
   display: flex;
@@ -243,18 +288,17 @@
   letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--nm-muted);
-  /* Stamped label effect */
-  text-shadow: 0 1px 0 rgba(255,255,255,0.8);
+  text-shadow: 0 1px 0 rgba(255,255,255,0.85);
 }
 
 .moduleId {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.625rem;
   color: var(--nm-muted);
-  opacity: 0.6;
+  opacity: 0.55;
 }
 
-/* ── Form ───────────────────────────────────────────────────────── */
+/* ── Form ────────────────────────────────────────────────────────── */
 .form {
   display: flex;
   flex-direction: column;
@@ -314,10 +358,10 @@
 
 .input::placeholder {
   color: var(--nm-muted);
-  opacity: 0.45;
+  opacity: 0.4;
 }
 
-/* ── Submit button ──────────────────────────────────────────────── */
+/* ── Submit button ───────────────────────────────────────────────── */
 .submitBtn {
   display: flex;
   align-items: center;
@@ -336,14 +380,11 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   cursor: pointer;
-  /* Physical depth shadows */
   box-shadow:
     4px 4px 8px rgba(166,50,60,0.45),
     -4px -4px 8px rgba(255,120,130,0.3),
     inset 0 1px 0 rgba(255,255,255,0.25);
   transition: all 150ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  position: relative;
-  top: 0;
 }
 
 .submitBtn:hover:not(:disabled) {
@@ -376,7 +417,6 @@
   transform: none;
 }
 
-/* Loading spinner */
 .spinner {
   display: inline-block;
   width: 14px;
@@ -391,12 +431,12 @@
   to { transform: rotate(360deg); }
 }
 
-/* ── Error banner ───────────────────────────────────────────────── */
+/* ── Error banner ────────────────────────────────────────────────── */
 .errorBanner {
   display: flex;
   align-items: center;
   gap: 0.625rem;
-  background: rgba(255,71,87,0.1);
+  background: rgba(255,71,87,0.08);
   border: 1px solid rgba(255,71,87,0.3);
   border-radius: 8px;
   padding: 0.625rem 0.875rem;
@@ -416,7 +456,7 @@
   animation: ledPulse 1s ease-in-out infinite;
 }
 
-/* ── Footer note ────────────────────────────────────────────────── */
+/* ── Footer note ─────────────────────────────────────────────────── */
 .footNote {
   margin-top: 1.75rem;
   font-family: 'JetBrains Mono', monospace;
@@ -424,28 +464,24 @@
   letter-spacing: 0.08em;
   text-align: center;
   color: var(--nm-muted);
-  opacity: 0.5;
+  opacity: 0.45;
   text-transform: uppercase;
 }
 
-/* ── Responsive ─────────────────────────────────────────────────── */
+/* ── Responsive ──────────────────────────────────────────────────── */
 @media (min-width: 768px) {
-  .brand {
-    display: flex;
-  }
+  .brand      { display: flex; }
+  .mobileHeader { display: none; }
   .module {
     margin: auto;
     border-radius: 0;
     box-shadow: none;
-    /* On desktop the module is right-panel — give it some breathing room */
-    padding: 4rem 4rem;
+    padding: 4rem;
     max-width: 520px;
     background-image:
       radial-gradient(ellipse at 20% 10%, rgba(255,255,255,0.55) 0%, transparent 55%);
   }
-  .chassis {
-    align-items: stretch;
-  }
+  .chassis { align-items: stretch; }
 }
 
 @media (max-width: 767px) {
@@ -453,16 +489,15 @@
     align-items: center;
     justify-content: center;
     padding: 1.5rem 1rem;
-    min-height: 100vh;
   }
   .module {
     padding: 2.5rem 1.75rem 2rem;
   }
 }
 
-/* ── Reduced motion ─────────────────────────────────────────────── */
+/* ── Reduced motion ──────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .led, .errorDot { animation: none; }
-  .spinner { animation: none; border-top-color: #fff; }
+  .spinner { animation: none; }
   .submitBtn { transition: none; }
 }
