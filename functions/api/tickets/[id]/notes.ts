@@ -2,12 +2,18 @@ import type { Env } from '../../../_middleware'
 import { requireAuth, AuthError, authErrorResponse } from '../../../lib/auth'
 import { getTicketById, getTicketNotes, addTicketNote } from '../../../lib/db'
 import { jsonResponse, errorResponse, optionsResponse } from '../../../lib/response'
+import { checkRateLimit, rateLimitResponse, NOTE_LIMITS } from '../../../lib/rateLimit'
 
 // POST /api/tickets/:id/notes
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
-  const origin = ctx.env.CORS_ORIGIN || '*'
+  const origin = ctx.env.CORS_ORIGIN
   try {
     const payload = await requireAuth(ctx.request, ctx.env)
+
+    // Per-user rate limit: 30 notes / hour
+    const rl = await checkRateLimit(ctx.env.DB, `user:${payload.sub}`, 'add_note', NOTE_LIMITS)
+    if (!rl.allowed) return rateLimitResponse(rl, origin)
+
     const id = parseInt(ctx.params.id as string)
     if (isNaN(id)) return errorResponse('Invalid ticket ID', 400, origin)
 
@@ -20,7 +26,6 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     const body = await ctx.request.json() as { note?: string; is_internal?: boolean }
     if (!body.note?.trim()) return errorResponse('Note content is required', 400, origin)
 
-    // Employees cannot post internal notes
     const isInternal = payload.role !== 'employee' && (body.is_internal ?? false) ? 1 : 0
 
     await addTicketNote(ctx.env.DB, id, payload.sub, body.note.trim(), isInternal)
@@ -34,4 +39,4 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
 }
 
 export const onRequestOptions: PagesFunction<Env> = async (ctx) =>
-  optionsResponse(ctx.env.CORS_ORIGIN || '*')
+  optionsResponse(ctx.env.CORS_ORIGIN)

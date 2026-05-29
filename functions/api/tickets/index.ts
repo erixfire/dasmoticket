@@ -1,13 +1,13 @@
 import type { Env } from '../../_middleware'
 import { requireAuth, AuthError, authErrorResponse } from '../../lib/auth'
-import { listTickets, createTicket } from '../../lib/db'
+import { listTickets, createTicket, logAudit } from '../../lib/db'
 import { jsonResponse, errorResponse, optionsResponse } from '../../lib/response'
-import { logAudit } from '../../lib/db'
+import { checkRateLimit, rateLimitResponse, TICKET_LIMITS } from '../../lib/rateLimit'
 
 const VALID_CATEGORIES = ['Hardware', 'Software', 'Network', 'Account', 'Other']
 const VALID_PRIORITIES = ['Low', 'Medium', 'High', 'Critical']
-const MAX_TITLE_LEN   = 200
-const MAX_DESC_LEN    = 5000
+const MAX_TITLE_LEN    = 200
+const MAX_DESC_LEN     = 5000
 
 // GET /api/tickets
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
@@ -40,6 +40,11 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const origin = ctx.env.CORS_ORIGIN
   try {
     const payload = await requireAuth(ctx.request, ctx.env)
+
+    // Per-user rate limit: 10 tickets / hour
+    const rl = await checkRateLimit(ctx.env.DB, `user:${payload.sub}`, 'create_ticket', TICKET_LIMITS)
+    if (!rl.allowed) return rateLimitResponse(rl, origin)
+
     const body = await ctx.request.json() as {
       title?: string
       description?: string
@@ -63,7 +68,6 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     if (!VALID_CATEGORIES.includes(category)) return errorResponse('Invalid category', 400, origin)
     if (!VALID_PRIORITIES.includes(priority))  return errorResponse('Invalid priority', 400, origin)
 
-    // Only IT staff and admin can assign tickets on creation
     const resolvedAssignee = payload.role === 'employee' ? null : (assigned_to ?? null)
 
     const result = await createTicket(ctx.env.DB, {

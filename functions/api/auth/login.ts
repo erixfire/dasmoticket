@@ -1,32 +1,19 @@
 import type { Env } from '../../_middleware'
 import { verifyPassword, hashPassword, signJWT } from '../../lib/crypto'
-import { getUserByEmail } from '../../lib/db'
+import { getUserByEmail, logAudit } from '../../lib/db'
 import { jsonResponse, errorResponse, optionsResponse } from '../../lib/response'
-import { logAudit } from '../../lib/db'
-import { checkRateLimit, resetRateLimit } from '../../lib/rateLimit'
+import { checkRateLimit, resetRateLimit, rateLimitResponse, LOGIN_LIMITS } from '../../lib/rateLimit'
 
 const TOKEN_TTL = 60 * 60 * 8 // 8 hours
 
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
-  const origin = ctx.env.CORS_ORIGIN || '*'
+  const origin = ctx.env.CORS_ORIGIN
   const ip = ctx.request.headers.get('CF-Connecting-IP') || 'unknown'
 
   try {
-    // Rate limit: 5 attempts per 15 min per IP
-    const rl = await checkRateLimit(ctx.env.DB, ip, 'login')
-    if (!rl.allowed) {
-      return new Response(
-        JSON.stringify({ success: false, error: `Too many login attempts. Try again in ${rl.retryAfter}s.` }),
-        {
-          status: 429,
-          headers: {
-            'Content-Type': 'application/json',
-            'Retry-After': String(rl.retryAfter),
-            'Access-Control-Allow-Origin': origin,
-          },
-        }
-      )
-    }
+    // IP-based rate limit: 5 attempts / 15 min
+    const rl = await checkRateLimit(ctx.env.DB, ip, 'login', LOGIN_LIMITS)
+    if (!rl.allowed) return rateLimitResponse(rl, origin)
 
     const body = await ctx.request.json() as { email?: string; password?: string }
     const { email, password } = body
@@ -44,7 +31,6 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       : await verifyPassword(password, dummyHash)
 
     if (!user || !passwordMatch) {
-      // Log failed attempt
       await logAudit(ctx.env.DB, null, 'LOGIN_FAILED', 'users', null, email, null, ip)
       return errorResponse('Invalid email or password', 401, origin)
     }
@@ -63,7 +49,6 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         .run()
     }
 
-    // Reset rate limit on successful login
     await resetRateLimit(ctx.env.DB, ip, 'login')
 
     const token = await signJWT(
@@ -85,4 +70,4 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
 }
 
 export const onRequestOptions: PagesFunction<Env> = async (ctx) =>
-  optionsResponse(ctx.env.CORS_ORIGIN || '*')
+  optionsResponse(ctx.env.CORS_ORIGIN)
