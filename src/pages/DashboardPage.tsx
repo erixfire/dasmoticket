@@ -1,105 +1,106 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { api } from '@/lib/api'
-import CreateTicketModal from '@/components/CreateTicketModal'
+import { StatusBadge } from '@/components/StatusBadge'
 import styles from './DashboardPage.module.css'
 
 interface Stats {
-  total: number; open: number; in_progress: number; resolved_today: number; critical: number
+  total: number
+  open: number
+  in_progress: number
+  resolved_today: number
+  critical: number
 }
+
+interface SurveyStats {
+  avg_rating: number
+  total: number
+  distribution: Record<number, number>
+}
+
+const STAT_CARDS = [
+  { key: 'total',          label: 'Total Tickets',     icon: '🎫', color: '#6366f1' },
+  { key: 'open',           label: 'Open',              icon: '📬', color: '#3b82f6' },
+  { key: 'in_progress',    label: 'In Progress',       icon: '🔧', color: '#f59e0b' },
+  { key: 'resolved_today', label: 'Resolved Today',    icon: '✅', color: '#22c55e' },
+  { key: 'critical',       label: 'Critical',          icon: '🔴', color: '#ef4444' },
+]
 
 export default function DashboardPage() {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
   const [stats, setStats] = useState<Stats | null>(null)
-  const [showCreate, setShowCreate] = useState(false)
+  const [surveyStats, setSurveyStats] = useState<SurveyStats | null>(null)
+  const [recentTickets, setRecentTickets] = useState<import('@/types').Ticket[]>([])
 
   useEffect(() => {
-    api.dashboard.stats()
-      .then(r => setStats(r.data.stats))
-      .catch(console.error)
-  }, [])
+    api.dashboard.stats().then(r => setStats(r.data.stats)).catch(console.error)
+    api.tickets.list({ limit: '5' }).then(r => setRecentTickets(r.data.tickets)).catch(console.error)
+    if (user?.role === 'it_staff' || user?.role === 'admin') {
+      api.surveys.stats().then(r => setSurveyStats(r.data.stats)).catch(console.error)
+    }
+  }, [user])
 
   return (
-    <div className={styles.layout}>
-      <aside className={styles.sidebar}>
-        <div className={styles.brand}>
-          <span className={styles.brandName}>DASMO Tickets</span>
-          <span className={styles.brandSub}>Iloilo City Gov</span>
+    <div className={styles.page}>
+      <div className={styles.header}>
+        <div>
+          <h1>Dashboard</h1>
+          <p className={styles.welcome}>Welcome back, <strong>{user?.name}</strong></p>
         </div>
-        <nav className={styles.nav}>
-          <a href="/dashboard" className={`${styles.navItem} ${styles.active}`}>📊 Dashboard</a>
-          <a href="/tickets" className={styles.navItem}>🎫 Tickets</a>
-          {(user?.role === 'it_staff' || user?.role === 'admin') && (
-            <a href="/schedule" className={styles.navItem}>📅 Schedule</a>
-          )}
-          {user?.role === 'admin' && (
-            <>
-              <a href="/users" className={styles.navItem}>👥 Users</a>
-              <a href="/reports" className={styles.navItem}>📈 Reports</a>
-            </>
-          )}
-        </nav>
-        <div className={styles.userInfo}>
-          <div className={styles.avatar}>{user?.name?.charAt(0).toUpperCase()}</div>
-          <div>
-            <div className={styles.userName}>{user?.name}</div>
-            <div className={styles.userRole}>{user?.role?.replace('_', ' ')}</div>
+      </div>
+
+      {/* Stat cards */}
+      <div className={styles.statsGrid}>
+        {STAT_CARDS.map(({ key, label, icon, color }) => (
+          <div key={key} className={styles.statCard}>
+            <div className={styles.statIcon} style={{ background: `${color}18`, color }}>{icon}</div>
+            <div>
+              <div className={styles.statValue} style={{ color }}>
+                {stats ? (stats as Record<string, number>)[key] : '—'}
+              </div>
+              <div className={styles.statLabel}>{label}</div>
+            </div>
           </div>
-          <button onClick={logout} className={styles.logoutBtn} title="Logout">⎋</button>
+        ))}
+      </div>
+
+      {/* Survey summary for IT staff/admin */}
+      {surveyStats && (
+        <div className={styles.surveyBanner}>
+          <div className={styles.surveyAvg}>
+            <span className={styles.surveyScore}>{surveyStats.total === 0 ? '—' : surveyStats.avg_rating?.toFixed(1)}</span>
+            <div>
+              <div className={styles.surveyStars}>
+                {[1,2,3,4,5].map(s => (
+                  <span key={s} style={{ color: s <= Math.round(surveyStats.avg_rating) ? '#f59e0b' : '#d1d5db' }}>★</span>
+                ))}
+              </div>
+              <div className={styles.surveyLabel}>Service Satisfaction</div>
+              <div className={styles.surveySub}>{surveyStats.total} responses</div>
+            </div>
+          </div>
+          <a href="/surveys" className={styles.surveyLink}>View Full Report →</a>
         </div>
-      </aside>
+      )}
 
-      <main className={styles.main}>
-        <header className={styles.topbar}>
-          <div>
-            <h1>Dashboard</h1>
-            <p className={styles.welcome}>Welcome back, {user?.name?.split(' ')[0]} 👋</p>
-          </div>
-          <button onClick={() => setShowCreate(true)} className={styles.newTicketBtn}>+ New Ticket</button>
-        </header>
-
-        <div className={styles.statsGrid}>
-          <StatCard label="Open Tickets" value={stats?.open ?? '—'} color="blue" icon="📥" />
-          <StatCard label="In Progress" value={stats?.in_progress ?? '—'} color="yellow" icon="⏳" />
-          <StatCard label="Resolved Today" value={stats?.resolved_today ?? '—'} color="green" icon="✅" />
-          <StatCard label="Critical" value={stats?.critical ?? '—'} color="red" icon="🚨" />
+      {/* Recent tickets */}
+      <div className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2>Recent Tickets</h2>
+          <a href="/tickets" className={styles.seeAll}>See all →</a>
         </div>
-
-        <section className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <h2>Quick Links</h2>
-          </div>
-          <div className={styles.quickLinks}>
-            <a href="/tickets" className={styles.quickLink}>
-              <span>🎫</span><span>View All Tickets</span>
-            </a>
-            <a href="/tickets?status=Open" className={styles.quickLink}>
-              <span>📥</span><span>Open Tickets</span>
-            </a>
-            {(user?.role === 'it_staff' || user?.role === 'admin') && (
-              <a href="/tickets?priority=Critical" className={styles.quickLink}>
-                <span>🚨</span><span>Critical Issues</span>
-              </a>
-            )}
-          </div>
-        </section>
-      </main>
-
-      <CreateTicketModal
-        open={showCreate}
-        onClose={() => setShowCreate(false)}
-        onCreated={() => api.dashboard.stats().then(r => setStats(r.data.stats)).catch(() => {})}
-      />
-    </div>
-  )
-}
-
-function StatCard({ label, value, color, icon }: { label: string; value: number | string; color: string; icon: string }) {
-  return (
-    <div className={`${styles.statCard} ${styles['statCard--' + color]}`}>
-      <div className={styles.statIcon}>{icon}</div>
-      <div className={styles.statValue}>{value}</div>
-      <div className={styles.statLabel}>{label}</div>
+        <div className={styles.ticketList}>
+          {recentTickets.length === 0 && <div className={styles.empty}>No tickets yet.</div>}
+          {recentTickets.map(t => (
+            <div key={t.id} className={styles.ticketRow}>
+              <code className={styles.ticketNum}>{t.ticket_number}</code>
+              <span className={styles.ticketTitle}>{t.title}</span>
+              <StatusBadge status={t.status} />
+              <span className={styles.ticketDate}>{new Date(t.created_at).toLocaleDateString('en-PH')}</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }

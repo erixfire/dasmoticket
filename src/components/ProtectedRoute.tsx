@@ -1,10 +1,16 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
-import { ReactNode } from 'react'
+import type { UserRole } from '@/types'
 
-export default function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { user, isLoading } = useAuth()
-  if (isLoading) return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>
+interface Props {
+  children: React.ReactNode
+  roles?: UserRole[]
+}
+
+export default function ProtectedRoute({ children, roles }: Props) {
+  const { user, loading } = useAuth()
+  if (loading) return <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', color:'var(--color-text-muted)' }}>Loading...</div>
   if (!user) return <Navigate to="/login" replace />
+  if (roles && !roles.includes(user.role)) return <Navigate to="/dashboard" replace />
   return <>{children}</>
 }
