@@ -5,11 +5,11 @@ import { api } from '@/lib/api'
 import styles from './Sidebar.module.css'
 
 const NAV = [
-  { to: '/dashboard',      icon: '📊', label: 'Dashboard',     roles: ['employee','it_staff','admin'] },
-  { to: '/tickets',        icon: '🎫', label: 'Tickets',       roles: ['employee','it_staff','admin'] },
-  { to: '/schedule',       icon: '🗓️', label: 'Schedule',      roles: ['employee','it_staff','admin'] },
-  { to: '/surveys',        icon: '⭐', label: 'Satisfaction',  roles: ['it_staff','admin'] },
-  { to: '/admin',          icon: '⚙️', label: 'Admin Panel',  roles: ['admin'] },
+  { to: '/dashboard',     icon: '📊', label: 'Dashboard',    roles: ['employee','it_staff','admin'] },
+  { to: '/tickets',       icon: '🎫', label: 'Tickets',      roles: ['employee','it_staff','admin'] },
+  { to: '/schedule',      icon: '🗓️', label: 'Schedule',     roles: ['employee','it_staff','admin'] },
+  { to: '/surveys',       icon: '⭐', label: 'Satisfaction', roles: ['it_staff','admin'] },
+  { to: '/admin',         icon: '⚙️', label: 'Admin Panel', roles: ['admin'] },
 ]
 
 export default function Sidebar() {
@@ -18,7 +18,6 @@ export default function Sidebar() {
   const [unread, setUnread] = useState(0)
 
   useEffect(() => {
-    // Derive unread count from in-progress / assigned tickets
     api.tickets.list({ page: '1' })
       .then(r => {
         const count = r.data.tickets.filter(
@@ -58,7 +57,7 @@ export default function Sidebar() {
           </div>
         </li>
 
-        {/* Notifications bell */}
+        {/* Notifications */}
         <li>
           <NavLink
             to="/notifications"
@@ -74,10 +73,29 @@ export default function Sidebar() {
             {unread > 0 && <span className={styles.navBadge}>{unread > 9 ? '9+' : unread}</span>}
           </NavLink>
         </li>
+
+        {/* Settings */}
+        <li>
+          <NavLink
+            to="/settings"
+            className={({ isActive }) => `${styles.navLink} ${isActive ? styles.active : ''}`}
+          >
+            <span className={styles.navIcon}>🔧</span>
+            <span>Settings</span>
+          </NavLink>
+        </li>
       </ul>
 
+      {/* User footer — click avatar to go to /settings */}
       <div className={styles.user}>
-        <div className={styles.avatar}>{user?.name?.slice(0, 1).toUpperCase()}</div>
+        <button
+          className={styles.avatarBtn}
+          onClick={() => navigate('/settings')}
+          title="Account settings"
+          aria-label="Go to settings"
+        >
+          {user?.name?.slice(0, 1).toUpperCase()}
+        </button>
         <div className={styles.userInfo}>
           <span className={styles.userName}>{user?.name}</span>
           <span className={styles.userRole}>{user?.role?.replace('_', ' ')}</span>
