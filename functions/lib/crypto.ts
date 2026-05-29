@@ -61,7 +61,7 @@ export async function verifyJWT(token: string, secret: string): Promise<JWTPaylo
   return payload
 }
 
-// ─── Password (PBKDF2) ─────────────────────────────────────────────────────
+// ─── Password (PBKDF2 only) ────────────────────────────────────────────────────
 
 export async function hashPassword(password: string): Promise<string> {
   const encoder = new TextEncoder()
@@ -77,18 +77,13 @@ export async function hashPassword(password: string): Promise<string> {
 }
 
 /**
- * Verify a password against a stored hash.
- * Supports two formats:
- *   plain:<password>   — plaintext comparison for initial bootstrap (auto-upgrades on login)
- *   pbkdf2:<salt>:<hash> — standard PBKDF2 hash
+ * Verify password against PBKDF2 hash only.
+ * plain: prefix support removed — all passwords must be properly hashed.
  */
 export async function verifyPassword(password: string, stored: string): Promise<boolean> {
   try {
-    if (stored.startsWith('plain:')) {
-      return password === stored.slice(6)
-    }
     const parts = stored.split(':')
-    if (parts.length !== 3) return false
+    if (parts.length !== 3 || parts[0] !== 'pbkdf2') return false
     const [, saltHex, hashHex] = parts
     const salt = new Uint8Array(saltHex.match(/.{2}/g)!.map(h => parseInt(h, 16)))
     const encoder = new TextEncoder()

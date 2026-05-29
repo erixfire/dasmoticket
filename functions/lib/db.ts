@@ -70,7 +70,7 @@ export interface DBSurvey {
   submitted_at: string
 }
 
-// ─ Users ──────────────────────────────────────────────────────────────────
+// ─ Users ────────────────────────────────────────────────────────────────────
 
 export async function getUserByEmail(db: D1Database, email: string): Promise<DBUser | null> {
   return db.prepare(
@@ -117,7 +117,7 @@ export async function updateUserPassword(db: D1Database, userId: number, passwor
   ).bind(passwordHash, userId).run()
 }
 
-// ─ Departments ──────────────────────────────────────────────────────────────
+// ─ Departments ─────────────────────────────────────────────────────
 
 export async function listDepartments(db: D1Database) {
   const result = await db.prepare(`SELECT * FROM departments ORDER BY name ASC`).all()
@@ -287,7 +287,6 @@ export async function getScheduleCountByDate(db: D1Database, dateStr: string): P
   return result?.cnt ?? 0
 }
 
-// Returns schedules grouped by date for calendar view
 export async function getSchedulesForCalendar(db: D1Database, yearMonth: string, role: string, userId: number): Promise<{ date: string; count: number }[]> {
   const conditions: string[] = [`strftime('%Y-%m', s.scheduled_date) = ?`]
   const bindings: unknown[] = [yearMonth]
@@ -303,7 +302,7 @@ export async function getSchedulesForCalendar(db: D1Database, yearMonth: string,
   return result.results
 }
 
-// ─ Surveys ────────────────────────────────────────────────────────────────
+// ─ Surveys ──────────────────────────────────────────────────────────────────
 
 export async function getSurveyByTicketId(db: D1Database, ticketId: number): Promise<DBSurvey | null> {
   return db.prepare(
@@ -334,7 +333,18 @@ export async function getSurveyStats(db: D1Database): Promise<{ avg_rating: numb
 // ─ Stats ──────────────────────────────────────────────────────────────────
 
 export async function getTicketStats(db: D1Database, role: string, userId: number) {
-  const scope = role === 'employee' ? `WHERE requester_id = ${userId}` : ''
+  // Fixed: use parameterized query instead of string interpolation to prevent SQL injection
+  if (role === 'employee') {
+    return db.prepare(
+      `SELECT
+         COUNT(*) as total,
+         SUM(CASE WHEN status = 'Open' THEN 1 ELSE 0 END) as open,
+         SUM(CASE WHEN status = 'In Progress' THEN 1 ELSE 0 END) as in_progress,
+         SUM(CASE WHEN status = 'Resolved' AND date(resolved_at) = date('now') THEN 1 ELSE 0 END) as resolved_today,
+         SUM(CASE WHEN priority = 'Critical' AND status NOT IN ('Resolved','Closed') THEN 1 ELSE 0 END) as critical
+       FROM tickets WHERE requester_id = ?`
+    ).bind(userId).first()
+  }
   return db.prepare(
     `SELECT
        COUNT(*) as total,
@@ -342,7 +352,7 @@ export async function getTicketStats(db: D1Database, role: string, userId: numbe
        SUM(CASE WHEN status = 'In Progress' THEN 1 ELSE 0 END) as in_progress,
        SUM(CASE WHEN status = 'Resolved' AND date(resolved_at) = date('now') THEN 1 ELSE 0 END) as resolved_today,
        SUM(CASE WHEN priority = 'Critical' AND status NOT IN ('Resolved','Closed') THEN 1 ELSE 0 END) as critical
-     FROM tickets ${scope}`
+     FROM tickets`
   ).first()
 }
 
@@ -354,7 +364,7 @@ export async function logAudit(db: D1Database, userId: number | null, action: st
   ).bind(userId, action, entityType, entityId, oldValue, newValue, ipAddress).run()
 }
 
-// ─ Helpers ────────────────────────────────────────────────────────────────
+// ─ Helpers ──────────────────────────────────────────────────────────────────
 
 function generateTicketNumber(): string {
   const date = new Date().toISOString().slice(2, 10).replace(/-/g, '')
