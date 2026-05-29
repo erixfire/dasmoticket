@@ -6,6 +6,12 @@ export interface Env {
   SETUP_KEY: string
 }
 
+/**
+ * Static security headers applied to every response.
+ * CSP here covers non-HTML responses (API JSON, etc.).
+ * For HTML responses, nonce.ts overwrites Content-Security-Policy
+ * with a per-request nonce-based policy.
+ */
 const SECURITY_HEADERS = {
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',
@@ -13,8 +19,9 @@ const SECURITY_HEADERS = {
   'Referrer-Policy': 'strict-origin-when-cross-origin',
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+  // Fallback CSP for non-HTML (API) responses — no inline needed here
   'Content-Security-Policy':
-    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none';",
+    "default-src 'none'; script-src 'none'; style-src 'none'; frame-ancestors 'none';",
 }
 
 export const onRequest: PagesFunction<Env> = async (ctx) => {
@@ -28,7 +35,7 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
     return new Response(JSON.stringify({ error: 'Server misconfiguration' }), { status: 500 })
   }
 
-  const origin = ctx.env.CORS_ORIGIN  // never falls back to *
+  const origin = ctx.env.CORS_ORIGIN
 
   const corsHeaders = {
     'Access-Control-Allow-Origin': origin,
