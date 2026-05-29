@@ -30,8 +30,8 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS tickets (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   ticket_number TEXT NOT NULL UNIQUE,
-  title TEXT NOT NULL,
-  description TEXT,
+  title TEXT NOT NULL CHECK(length(title) <= 200),
+  description TEXT CHECK(description IS NULL OR length(description) <= 5000),
   category TEXT NOT NULL CHECK(category IN ('Hardware', 'Software', 'Network', 'Account', 'Other')),
   priority TEXT NOT NULL CHECK(priority IN ('Low', 'Medium', 'High', 'Critical')),
   status TEXT NOT NULL DEFAULT 'Open' CHECK(status IN ('Open', 'In Progress', 'Resolved', 'Closed')),
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS ticket_notes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   ticket_id INTEGER NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
   author_id INTEGER NOT NULL REFERENCES users(id),
-  note TEXT NOT NULL,
+  note TEXT NOT NULL CHECK(length(note) <= 5000),
   is_internal INTEGER DEFAULT 1,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -89,7 +89,23 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Seed: Default Departments
+-- Rate Limiting (must exist before first login attempt)
+CREATE TABLE IF NOT EXISTS rate_limit_attempts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ip TEXT NOT NULL,
+  endpoint TEXT NOT NULL,
+  attempts INTEGER NOT NULL DEFAULT 1,
+  window_start INTEGER NOT NULL,
+  blocked_until INTEGER
+);
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_rate_limit_ip_endpoint ON rate_limit_attempts (ip, endpoint);
+CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets (status);
+CREATE INDEX IF NOT EXISTS idx_tickets_requester ON tickets (requester_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs (created_at DESC);
+
+-- Seed: Default Departments (safe to re-run)
 INSERT OR IGNORE INTO departments (name, code) VALUES
   ('DASMO', 'DASMO'),
   ('City Mayor Office', 'CMO'),
@@ -102,6 +118,4 @@ INSERT OR IGNORE INTO departments (name, code) VALUES
   ('Human Resource Management Office', 'HRMO'),
   ('Information Technology Office', 'ITO');
 
--- Seed: Default Admin User (password: admin123 - CHANGE IN PRODUCTION)
-INSERT OR IGNORE INTO users (name, email, password_hash, role, department_id) VALUES
-  ('DASMO Admin', 'admin@iloilocity.gov.ph', '$2a$10$placeholder_hash_change_this', 'admin', 1);
+-- NOTE: No default admin seed. Run POST /api/setup with SETUP_KEY to create the first admin.

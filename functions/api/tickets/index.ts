@@ -1,15 +1,17 @@
 import type { Env } from '../../_middleware'
 import { requireAuth, AuthError, authErrorResponse } from '../../lib/auth'
-import { listTickets, createTicket, getTicketStats } from '../../lib/db'
+import { listTickets, createTicket } from '../../lib/db'
 import { jsonResponse, errorResponse, optionsResponse } from '../../lib/response'
 import { logAudit } from '../../lib/db'
 
 const VALID_CATEGORIES = ['Hardware', 'Software', 'Network', 'Account', 'Other']
 const VALID_PRIORITIES = ['Low', 'Medium', 'High', 'Critical']
+const MAX_TITLE_LEN   = 200
+const MAX_DESC_LEN    = 5000
 
 // GET /api/tickets
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
-  const origin = ctx.env.CORS_ORIGIN || '*'
+  const origin = ctx.env.CORS_ORIGIN
   try {
     const payload = await requireAuth(ctx.request, ctx.env)
     const url = new URL(ctx.request.url)
@@ -35,7 +37,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
 
 // POST /api/tickets
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
-  const origin = ctx.env.CORS_ORIGIN || '*'
+  const origin = ctx.env.CORS_ORIGIN
   try {
     const payload = await requireAuth(ctx.request, ctx.env)
     const body = await ctx.request.json() as {
@@ -49,12 +51,19 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
 
     const { title, description, category, priority, department_id = null, assigned_to = null } = body
 
-    if (!title || !category || !priority) {
+    if (!title?.trim() || !category || !priority) {
       return errorResponse('title, category, and priority are required', 400, origin)
     }
-    if (!VALID_CATEGORIES.includes(category)) return errorResponse(`Invalid category`, 400, origin)
-    if (!VALID_PRIORITIES.includes(priority)) return errorResponse(`Invalid priority`, 400, origin)
-    // Only IT staff and admin can assign tickets
+    if (title.trim().length > MAX_TITLE_LEN) {
+      return errorResponse(`Title must be ${MAX_TITLE_LEN} characters or fewer`, 400, origin)
+    }
+    if (description && description.length > MAX_DESC_LEN) {
+      return errorResponse(`Description must be ${MAX_DESC_LEN} characters or fewer`, 400, origin)
+    }
+    if (!VALID_CATEGORIES.includes(category)) return errorResponse('Invalid category', 400, origin)
+    if (!VALID_PRIORITIES.includes(priority))  return errorResponse('Invalid priority', 400, origin)
+
+    // Only IT staff and admin can assign tickets on creation
     const resolvedAssignee = payload.role === 'employee' ? null : (assigned_to ?? null)
 
     const result = await createTicket(ctx.env.DB, {
@@ -68,7 +77,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     })
 
     const ip = ctx.request.headers.get('CF-Connecting-IP')
-    await logAudit(ctx.env.DB, payload.sub, 'CREATE_TICKET', 'tickets', Number(result.meta.last_row_id), null, JSON.stringify({ title, category, priority }), ip)
+    await logAudit(ctx.env.DB, payload.sub, 'CREATE_TICKET', 'tickets', Number(result.meta.last_row_id), null, JSON.stringify({ title: title.trim(), category, priority }), ip)
 
     return jsonResponse({ id: result.meta.last_row_id, message: 'Ticket created successfully' }, 201, origin)
   } catch (err) {
@@ -78,4 +87,4 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
 }
 
 export const onRequestOptions: PagesFunction<Env> = async (ctx) =>
-  optionsResponse(ctx.env.CORS_ORIGIN || '*')
+  optionsResponse(ctx.env.CORS_ORIGIN)

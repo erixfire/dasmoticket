@@ -18,16 +18,20 @@ const SECURITY_HEADERS = {
 }
 
 export const onRequest: PagesFunction<Env> = async (ctx) => {
-  const origin = ctx.env.CORS_ORIGIN || ''
-
-  // Validate critical env vars
+  // Validate critical env vars on every request
   if (!ctx.env.JWT_SECRET || ctx.env.JWT_SECRET.length < 32) {
     console.error('FATAL: JWT_SECRET is missing or too short')
     return new Response(JSON.stringify({ error: 'Server misconfiguration' }), { status: 500 })
   }
+  if (!ctx.env.CORS_ORIGIN) {
+    console.error('FATAL: CORS_ORIGIN is not set')
+    return new Response(JSON.stringify({ error: 'Server misconfiguration' }), { status: 500 })
+  }
+
+  const origin = ctx.env.CORS_ORIGIN  // never falls back to *
 
   const corsHeaders = {
-    'Access-Control-Allow-Origin': origin || '*',
+    'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Max-Age': '86400',
@@ -43,7 +47,6 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
 
   const response = await ctx.next()
 
-  // Inject security + CORS headers into every response
   const newHeaders = new Headers(response.headers)
   Object.entries({ ...corsHeaders, ...SECURITY_HEADERS }).forEach(([k, v]) => newHeaders.set(k, v))
   return new Response(response.body, {

@@ -1,6 +1,6 @@
 /**
  * D1-backed rate limiter.
- * Table: rate_limit_attempts (ip TEXT, endpoint TEXT, attempts INT, window_start INT)
+ * Requires rate_limit_attempts table — defined in schema.sql.
  * Blocks after MAX_ATTEMPTS within WINDOW_MS.
  */
 
@@ -22,18 +22,6 @@ export async function checkRateLimit(
   const now = Date.now()
   const windowStart = now - WINDOW_MS
 
-  // Ensure table exists (idempotent)
-  await db.prepare(`
-    CREATE TABLE IF NOT EXISTS rate_limit_attempts (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      ip TEXT NOT NULL,
-      endpoint TEXT NOT NULL,
-      attempts INTEGER NOT NULL DEFAULT 1,
-      window_start INTEGER NOT NULL,
-      blocked_until INTEGER
-    )
-  `).run()
-
   // Check existing record
   const record = await db.prepare(
     `SELECT * FROM rate_limit_attempts WHERE ip = ? AND endpoint = ? ORDER BY window_start DESC LIMIT 1`
@@ -52,14 +40,12 @@ export async function checkRateLimit(
     // Within current window
     if (record.window_start > windowStart) {
       if (record.attempts >= MAX_ATTEMPTS) {
-        // Exceeded — set block
         const blockedUntil = now + BLOCK_MS
         await db.prepare(
           `UPDATE rate_limit_attempts SET blocked_until = ? WHERE id = ?`
         ).bind(blockedUntil, record.id).run()
         return { allowed: false, remaining: 0, retryAfter: BLOCK_MS / 1000 }
       }
-      // Increment
       await db.prepare(
         `UPDATE rate_limit_attempts SET attempts = attempts + 1 WHERE id = ?`
       ).bind(record.id).run()
@@ -67,10 +53,9 @@ export async function checkRateLimit(
     }
   }
 
-  // New window — upsert
+  // New window
   await db.prepare(
-    `INSERT INTO rate_limit_attempts (ip, endpoint, attempts, window_start) VALUES (?, ?, 1, ?)
-     ON CONFLICT DO NOTHING`
+    `INSERT INTO rate_limit_attempts (ip, endpoint, attempts, window_start) VALUES (?, ?, 1, ?)`
   ).bind(ip, endpoint, now).run()
 
   return { allowed: true, remaining: MAX_ATTEMPTS - 1 }
