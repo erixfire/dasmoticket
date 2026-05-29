@@ -1,11 +1,10 @@
-import { useState } from 'react'
 import styles from './MiniCalendar.module.css'
 
 interface DayCount { date: string; count: number }
 
 interface Props {
   year: number
-  month: number  // 0-indexed
+  month: number
   dayData: DayCount[]
   selectedDate?: string | null
   onSelectDate: (date: string) => void
@@ -17,7 +16,6 @@ const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
 
 export default function MiniCalendar({ year, month, dayData, selectedDate, onSelectDate, onMonthChange }: Props) {
   const countMap = Object.fromEntries(dayData.map(d => [d.date, d.count]))
-
   const firstDay = new Date(year, month, 1).getDay()
   const daysInMonth = new Date(year, month + 1, 0).getDate()
   const today = new Date().toISOString().slice(0, 10)

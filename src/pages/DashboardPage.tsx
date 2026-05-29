@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { api } from '@/lib/api'
 import { StatusBadge } from '@/components/StatusBadge'
+import type { Ticket } from '@/types'
 import styles from './DashboardPage.module.css'
 
 interface Stats {
@@ -10,6 +11,7 @@ interface Stats {
   in_progress: number
   resolved_today: number
   critical: number
+  [key: string]: number
 }
 
 interface SurveyStats {
@@ -19,21 +21,21 @@ interface SurveyStats {
 }
 
 const STAT_CARDS = [
-  { key: 'total',          label: 'Total Tickets',     icon: '🎫', color: '#6366f1' },
-  { key: 'open',           label: 'Open',              icon: '📬', color: '#3b82f6' },
-  { key: 'in_progress',    label: 'In Progress',       icon: '🔧', color: '#f59e0b' },
-  { key: 'resolved_today', label: 'Resolved Today',    icon: '✅', color: '#22c55e' },
-  { key: 'critical',       label: 'Critical',          icon: '🔴', color: '#ef4444' },
+  { key: 'total',          label: 'Total Tickets',  icon: '🎫', color: '#6366f1' },
+  { key: 'open',           label: 'Open',           icon: '📬', color: '#3b82f6' },
+  { key: 'in_progress',    label: 'In Progress',    icon: '🔧', color: '#f59e0b' },
+  { key: 'resolved_today', label: 'Resolved Today', icon: '✅', color: '#22c55e' },
+  { key: 'critical',       label: 'Critical',       icon: '🔴', color: '#ef4444' },
 ]
 
 export default function DashboardPage() {
   const { user } = useAuth()
   const [stats, setStats] = useState<Stats | null>(null)
   const [surveyStats, setSurveyStats] = useState<SurveyStats | null>(null)
-  const [recentTickets, setRecentTickets] = useState<import('@/types').Ticket[]>([])
+  const [recentTickets, setRecentTickets] = useState<Ticket[]>([])
 
   useEffect(() => {
-    api.dashboard.stats().then(r => setStats(r.data.stats)).catch(console.error)
+    api.dashboard.stats().then(r => setStats(r.data.stats as Stats)).catch(console.error)
     api.tickets.list({ limit: '5' }).then(r => setRecentTickets(r.data.tickets)).catch(console.error)
     if (user?.role === 'it_staff' || user?.role === 'admin') {
       api.surveys.stats().then(r => setSurveyStats(r.data.stats)).catch(console.error)
@@ -49,26 +51,24 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Stat cards */}
       <div className={styles.statsGrid}>
         {STAT_CARDS.map(({ key, label, icon, color }) => (
           <div key={key} className={styles.statCard}>
             <div className={styles.statIcon} style={{ background: `${color}18`, color }}>{icon}</div>
             <div>
-              <div className={styles.statValue} style={{ color }}>
-                {stats ? (stats as Record<string, number>)[key] : '—'}
-              </div>
+              <div className={styles.statValue} style={{ color }}>{stats ? stats[key] : '—'}</div>
               <div className={styles.statLabel}>{label}</div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Survey summary for IT staff/admin */}
       {surveyStats && (
         <div className={styles.surveyBanner}>
           <div className={styles.surveyAvg}>
-            <span className={styles.surveyScore}>{surveyStats.total === 0 ? '—' : surveyStats.avg_rating?.toFixed(1)}</span>
+            <span className={styles.surveyScore}>
+              {surveyStats.total === 0 ? '—' : surveyStats.avg_rating?.toFixed(1)}
+            </span>
             <div>
               <div className={styles.surveyStars}>
                 {[1,2,3,4,5].map(s => (
@@ -83,7 +83,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Recent tickets */}
       <div className={styles.section}>
         <div className={styles.sectionHeader}>
           <h2>Recent Tickets</h2>

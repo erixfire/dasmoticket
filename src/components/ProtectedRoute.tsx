@@ -8,8 +8,12 @@ interface Props {
 }
 
 export default function ProtectedRoute({ children, roles }: Props) {
-  const { user, loading } = useAuth()
-  if (loading) return <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', color:'var(--color-text-muted)' }}>Loading...</div>
+  const { user, isLoading } = useAuth()
+  if (isLoading) return (
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', color:'var(--color-text-muted)' }}>
+      Loading...
+    </div>
+  )
   if (!user) return <Navigate to="/login" replace />
   if (roles && !roles.includes(user.role)) return <Navigate to="/dashboard" replace />
   return <>{children}</>

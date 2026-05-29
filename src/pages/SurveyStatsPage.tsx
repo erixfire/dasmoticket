@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useAuth } from '@/context/AuthContext'
 import { api } from '@/lib/api'
 import styles from './SurveyStatsPage.module.css'
 
@@ -13,7 +12,6 @@ interface SurveyStats {
 }
 
 export default function SurveyStatsPage() {
-  const { user } = useAuth()
   const [stats, setStats] = useState<SurveyStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -21,7 +19,7 @@ export default function SurveyStatsPage() {
   useEffect(() => {
     api.surveys.stats()
       .then(res => setStats(res.data.stats))
-      .catch(err => setError(err.message))
+      .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false))
   }, [])
 
@@ -41,7 +39,6 @@ export default function SurveyStatsPage() {
       </div>
 
       <div className={styles.topRow}>
-        {/* Big average score card */}
         <div className={styles.scoreCard}>
           <div className={styles.scoreNum}>{stats.total === 0 ? '—' : avgRounded.toFixed(1)}</div>
           <div className={styles.scoreStars}>
@@ -53,7 +50,6 @@ export default function SurveyStatsPage() {
           <div className={styles.scoreSub}>{stats.total} response{stats.total !== 1 ? 's' : ''}</div>
         </div>
 
-        {/* Distribution bar chart */}
         <div className={styles.distCard}>
           <h3 className={styles.cardTitle}>Rating Breakdown</h3>
           <div className={styles.bars}>
@@ -68,10 +64,7 @@ export default function SurveyStatsPage() {
                     <span className={styles.barLabelText}>{STAR_LABELS[star]}</span>
                   </div>
                   <div className={styles.barTrack}>
-                    <div
-                      className={styles.barFill}
-                      style={{ width: barWidth, background: STAR_COLORS[star] }}
-                    />
+                    <div className={styles.barFill} style={{ width: barWidth, background: STAR_COLORS[star] }} />
                   </div>
                   <div className={styles.barStats}>
                     <span className={styles.barCount}>{count}</span>
@@ -83,43 +76,17 @@ export default function SurveyStatsPage() {
           </div>
         </div>
 
-        {/* Donut-style satisfaction rate */}
         <div className={styles.satisfactionCard}>
           <h3 className={styles.cardTitle}>Satisfaction Rate</h3>
           <SatisfactionRing stats={stats} />
         </div>
       </div>
 
-      {/* Trend cards row */}
       <div className={styles.trendRow}>
-        <MetricCard
-          icon="⭐"
-          label="Average Score"
-          value={stats.total === 0 ? 'N/A' : `${avgRounded.toFixed(1)} / 5`}
-          sub={stats.total === 0 ? 'No responses yet' : ratingTier(avgRounded)}
-          color={avgRounded >= 4 ? '#22c55e' : avgRounded >= 3 ? '#f59e0b' : '#ef4444'}
-        />
-        <MetricCard
-          icon="📋"
-          label="Total Responses"
-          value={String(stats.total)}
-          sub="surveys submitted"
-          color="#6366f1"
-        />
-        <MetricCard
-          icon="👍"
-          label="Positive (4–5 ★)"
-          value={stats.total > 0 ? `${Math.round(((stats.distribution[4] ?? 0) + (stats.distribution[5] ?? 0)) / stats.total * 100)}%` : '—'}
-          sub={`${(stats.distribution[4] ?? 0) + (stats.distribution[5] ?? 0)} responses`}
-          color="#22c55e"
-        />
-        <MetricCard
-          icon="👎"
-          label="Negative (1–2 ★)"
-          value={stats.total > 0 ? `${Math.round(((stats.distribution[1] ?? 0) + (stats.distribution[2] ?? 0)) / stats.total * 100)}%` : '—'}
-          sub={`${(stats.distribution[1] ?? 0) + (stats.distribution[2] ?? 0)} responses`}
-          color="#ef4444"
-        />
+        <MetricCard icon="⭐" label="Average Score" value={stats.total === 0 ? 'N/A' : `${avgRounded.toFixed(1)} / 5`} sub={stats.total === 0 ? 'No responses yet' : ratingTier(avgRounded)} color={avgRounded >= 4 ? '#22c55e' : avgRounded >= 3 ? '#f59e0b' : '#ef4444'} />
+        <MetricCard icon="📋" label="Total Responses" value={String(stats.total)} sub="surveys submitted" color="#6366f1" />
+        <MetricCard icon="👍" label="Positive (4–5 ★)" value={stats.total > 0 ? `${Math.round(((stats.distribution[4] ?? 0) + (stats.distribution[5] ?? 0)) / stats.total * 100)}%` : '—'} sub={`${(stats.distribution[4] ?? 0) + (stats.distribution[5] ?? 0)} responses`} color="#22c55e" />
+        <MetricCard icon="👎" label="Negative (1–2 ★)" value={stats.total > 0 ? `${Math.round(((stats.distribution[1] ?? 0) + (stats.distribution[2] ?? 0)) / stats.total * 100)}%` : '—'} sub={`${(stats.distribution[1] ?? 0) + (stats.distribution[2] ?? 0)} responses`} color="#ef4444" />
       </div>
 
       {stats.total === 0 && (
@@ -133,28 +100,17 @@ export default function SurveyStatsPage() {
   )
 }
 
-// SVG donut ring component
 function SatisfactionRing({ stats }: { stats: SurveyStats }) {
   const positive = (stats.distribution[4] ?? 0) + (stats.distribution[5] ?? 0)
   const pct = stats.total > 0 ? Math.round((positive / stats.total) * 100) : 0
   const r = 56
   const circ = 2 * Math.PI * r
   const dash = (pct / 100) * circ
-
   return (
     <div className={styles.ring}>
       <svg width="160" height="160" viewBox="0 0 160 160">
         <circle cx="80" cy="80" r={r} fill="none" stroke="#e5e7eb" strokeWidth="16" />
-        <circle
-          cx="80" cy="80" r={r}
-          fill="none"
-          stroke={pct >= 70 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444'}
-          strokeWidth="16"
-          strokeDasharray={`${dash} ${circ}`}
-          strokeDashoffset={circ * 0.25}
-          strokeLinecap="round"
-          style={{ transition: 'stroke-dasharray 0.6s ease' }}
-        />
+        <circle cx="80" cy="80" r={r} fill="none" stroke={pct >= 70 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444'} strokeWidth="16" strokeDasharray={`${dash} ${circ}`} strokeDashoffset={circ * 0.25} strokeLinecap="round" style={{ transition: 'stroke-dasharray 0.6s ease' }} />
         <text x="80" y="76" textAnchor="middle" fontSize="26" fontWeight="700" fill="currentColor">{pct}%</text>
         <text x="80" y="96" textAnchor="middle" fontSize="11" fill="#94a3b8">Satisfied</text>
       </svg>
