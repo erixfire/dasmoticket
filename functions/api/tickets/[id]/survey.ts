@@ -1,13 +1,13 @@
-import type { Env } from '../../../../_middleware'
-import { requireAuth, AuthError, authErrorResponse } from '../../../../lib/auth'
-import { getTicketById, getSurveyByTicketId, createSurvey, logAudit } from '../../../../lib/db'
-import { jsonResponse, errorResponse, optionsResponse } from '../../../../lib/response'
+import type { Env } from '../../../_middleware'
+import { requireAuth, AuthError, authErrorResponse } from '../../../lib/auth'
+import { getTicketById, getSurveyByTicketId, createSurvey, logAudit } from '../../../lib/db'
+import { jsonResponse, errorResponse, optionsResponse } from '../../../lib/response'
 
 // GET /api/tickets/:id/survey
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const origin = ctx.env.CORS_ORIGIN || '*'
   try {
-    const payload = await requireAuth(ctx.request, ctx.env)
+    await requireAuth(ctx.request, ctx.env)
     const id = parseInt(ctx.params.id as string)
     if (isNaN(id)) return errorResponse('Invalid ticket ID', 400, origin)
     const survey = await getSurveyByTicketId(ctx.env.DB, id)
@@ -28,15 +28,12 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
 
     const ticket = await getTicketById(ctx.env.DB, id)
     if (!ticket) return errorResponse('Ticket not found', 404, origin)
-    // Only the requester can submit the survey
     if (ticket.requester_id !== payload.sub) {
       return errorResponse('Only the ticket requester can submit the survey', 403, origin)
     }
-    // Ticket must be Resolved
     if (ticket.status !== 'Resolved') {
       return errorResponse('Survey is only available for Resolved tickets', 400, origin)
     }
-    // One survey per ticket
     const existing = await getSurveyByTicketId(ctx.env.DB, id)
     if (existing) return errorResponse('Survey already submitted for this ticket', 409, origin)
 

@@ -1,7 +1,7 @@
-import type { Env } from '../../../../_middleware'
-import { requireAuth, AuthError, authErrorResponse } from '../../../../lib/auth'
-import { getScheduleByTicketId } from '../../../../lib/db'
-import { jsonResponse, errorResponse, optionsResponse } from '../../../../lib/response'
+import type { Env } from '../../../_middleware'
+import { requireAuth, AuthError, authErrorResponse } from '../../../lib/auth'
+import { getScheduleByTicketId } from '../../../lib/db'
+import { jsonResponse, errorResponse, optionsResponse } from '../../../lib/response'
 
 // GET /api/tickets/:id/schedule
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
