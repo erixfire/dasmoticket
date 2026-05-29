@@ -1,20 +1,31 @@
 .wrap {
-  padding: 3rem 2rem;
+  padding: 3.5rem 2rem 2.5rem;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.625rem;
 }
 
 .iconWell {
-  width: 64px; height: 64px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
   background: #e0e5ec;
-  box-shadow: inset 4px 4px 8px #babecc, inset -4px -4px 8px #ffffff;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.75rem;
-  margin-bottom: 0.5rem;
+  box-shadow: inset 4px 4px 10px #babecc, inset -4px -4px 10px #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.625rem;
+  flex-shrink: 0;
+}
+
+.iconEmoji {
+  font-size: 1.875rem;
+  line-height: 1;
+  /* Force color emoji — prevents fallback to symbol glyph */
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  user-select: none;
 }
 
 .title {
@@ -22,6 +33,7 @@
   font-weight: 700;
   color: #2d3436;
   text-shadow: 0 1px 0 rgba(255,255,255,0.9);
+  margin: 0;
 }
 
 .desc {
@@ -29,11 +41,12 @@
   color: #4a5568;
   max-width: 36ch;
   line-height: 1.6;
+  margin: 0;
 }
 
 .action {
-  margin-top: 0.5rem;
-  padding: 0.55rem 1.25rem;
+  margin-top: 0.75rem;
+  padding: 0.55rem 1.375rem;
   border-radius: 999px;
   border: none;
   background: #e0e5ec;
@@ -47,5 +60,17 @@
   cursor: pointer;
   transition: box-shadow 150ms ease, transform 150ms ease;
 }
-.action:hover  { box-shadow: 8px 8px 16px #babecc, -8px -8px 16px #ffffff; transform: translateY(-1px); }
-.action:active { box-shadow: inset 4px 4px 8px #babecc, inset -4px -4px 8px #ffffff; transform: translateY(1px); }
+
+.action:hover {
+  box-shadow: 8px 8px 16px #babecc, -8px -8px 16px #ffffff;
+  transform: translateY(-1px);
+}
+
+.action:active {
+  box-shadow: inset 4px 4px 8px #babecc, inset -4px -4px 8px #ffffff;
+  transform: translateY(1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action { transition: none; }
+}
