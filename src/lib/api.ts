@@ -40,8 +40,26 @@ export const api = {
     create: (payload: { title: string; description?: string; category: string; priority: string; department_id?: number | null }) => request<{ success: boolean; data: { id: number } }>('/tickets', { method: 'POST', body: JSON.stringify(payload) }),
     update: (id: number, payload: Partial<import('@/types').Ticket & { assigned_to: number | null }>) => request<{ success: boolean; data: { ticket: import('@/types').Ticket } }>(`/tickets/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
     addNote: (id: number, note: string, is_internal = false) => request(`/tickets/${id}/notes`, { method: 'POST', body: JSON.stringify({ note, is_internal }) }),
+    getSchedule: (id: number) => request<{ success: boolean; data: { schedule: import('@/types').Schedule | null } }>(`/tickets/${id}/schedule`),
+    getSurvey: (id: number) => request<{ success: boolean; data: { survey: import('@/types').Survey | null } }>(`/tickets/${id}/survey`),
+    submitSurvey: (id: number, rating: number, comments?: string) => request(`/tickets/${id}/survey`, { method: 'POST', body: JSON.stringify({ rating, comments }) }),
+  },
+  schedules: {
+    list: (params?: Record<string, string>) => {
+      const qs = params ? '?' + new URLSearchParams(params).toString() : ''
+      return request<{ success: boolean; data: { schedules: import('@/types').Schedule[]; total: number } }>(`/schedules${qs}`)
+    },
+    create: (payload: { ticket_id: number; repair_type: string; scheduled_date: string; location_notes?: string }) =>
+      request<{ success: boolean; data: { id: number } }>('/schedules', { method: 'POST', body: JSON.stringify(payload) }),
+    update: (id: number, status: string) =>
+      request<{ success: boolean; data: { schedule: import('@/types').Schedule } }>(`/schedules/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+    calendar: (month: string) =>
+      request<{ success: boolean; data: { month: string; days: { date: string; count: number }[] } }>(`/schedules/calendar?month=${month}`),
   },
   dashboard: {
     stats: () => request<{ success: boolean; data: { stats: { total: number; open: number; in_progress: number; resolved_today: number; critical: number } } }>('/dashboard/stats'),
+  },
+  surveys: {
+    stats: () => request<{ success: boolean; data: { stats: { avg_rating: number; total: number; distribution: Record<number, number> } } }>('/surveys/stats'),
   },
 }

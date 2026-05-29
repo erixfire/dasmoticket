@@ -14,6 +14,8 @@ export interface User {
 export type TicketCategory = 'Hardware' | 'Software' | 'Network' | 'Account' | 'Other'
 export type TicketPriority = 'Low' | 'Medium' | 'High' | 'Critical'
 export type TicketStatus = 'Open' | 'In Progress' | 'Resolved' | 'Closed'
+export type ScheduleStatus = 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled'
+export type RepairType = 'Onsite' | 'Offsite'
 
 export interface Ticket {
   id: number
@@ -42,6 +44,34 @@ export interface TicketNote {
   note: string
   is_internal: number
   created_at: string
+}
+
+export interface Schedule {
+  id: number
+  ticket_id: number
+  ticket_number: string
+  ticket_title: string
+  repair_type: RepairType
+  proposed_at: string | null
+  confirmed_at: string | null
+  scheduled_date: string | null
+  location_notes: string | null
+  status: ScheduleStatus
+  requester_name: string
+  assigned_name: string | null
+  created_at: string
+}
+
+export interface Survey {
+  id: number
+  ticket_id: number
+  ticket_number: string
+  ticket_title: string
+  respondent_id: number
+  respondent_name: string
+  rating: number
+  comments: string | null
+  submitted_at: string
 }
 
 export interface Department {
