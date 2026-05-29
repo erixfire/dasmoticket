@@ -1,23 +1,28 @@
 import styles from './Badge.module.css'
 
 export type BadgeVariant = 'default' | 'success' | 'warning' | 'danger' | 'info' | 'purple'
+export type BadgeSize = 'sm' | 'xs'
 
-interface BadgeProps {
+export interface BadgeProps {
   children: React.ReactNode
   variant?: BadgeVariant
   dot?: boolean
+  size?: BadgeSize
 }
 
-export function Badge({ children, variant = 'default', dot = false }: BadgeProps) {
+export function Badge({ children, variant = 'default', dot = false, size }: BadgeProps) {
   return (
-    <span className={`${styles.badge} ${styles[variant]}`}>
+    <span className={[
+      styles.badge,
+      styles[variant],
+      size ? styles[size] : '',
+    ].filter(Boolean).join(' ')}>
       {dot && <span className={styles.dot} />}
       {children}
     </span>
   )
 }
 
-// Priority badges
 export function PriorityBadge({ priority }: { priority: string }) {
   const map: Record<string, BadgeVariant> = {
     Critical: 'danger',
@@ -28,7 +33,6 @@ export function PriorityBadge({ priority }: { priority: string }) {
   return <Badge variant={map[priority] ?? 'default'}>{priority}</Badge>
 }
 
-// Status badges
 export function StatusBadge({ status }: { status: string }) {
   const map: Record<string, BadgeVariant> = {
     Open: 'info',
@@ -43,7 +47,6 @@ export function StatusBadge({ status }: { status: string }) {
   return <Badge variant={map[status] ?? 'default'} dot>{status}</Badge>
 }
 
-// Role badges
 export function RoleBadge({ role }: { role: string }) {
   const map: Record<string, BadgeVariant> = {
     admin: 'purple',
