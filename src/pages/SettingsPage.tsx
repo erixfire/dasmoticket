@@ -4,22 +4,25 @@ import { api } from '@/lib/api'
 import { toast, Spinner } from '@/components/ui'
 import styles from './SettingsPage.module.css'
 
-tabs
 const TABS = ['Profile', 'Security', 'Preferences'] as const
 type Tab = typeof TABS[number]
+
+const TAB_ICON: Record<Tab, string> = {
+  Profile:     '👤',
+  Security:    '🔒',
+  Preferences: '⚙️',
+}
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>('Profile')
 
   return (
     <div className={styles.page}>
-      {/* Header */}
       <div className={styles.header}>
         <h1 className={styles.title}>Account Settings</h1>
         <p className={styles.subtitle}>Manage your profile, password, and preferences.</p>
       </div>
 
-      {/* Tab bar */}
       <div className={styles.tabBar}>
         {TABS.map(t => (
           <button
@@ -32,7 +35,6 @@ export default function SettingsPage() {
         ))}
       </div>
 
-      {/* Tab content */}
       <div className={styles.body}>
         {activeTab === 'Profile'     && <ProfileTab />}
         {activeTab === 'Security'    && <SecurityTab />}
@@ -42,37 +44,27 @@ export default function SettingsPage() {
   )
 }
 
-const TAB_ICON: Record<Tab, string> = {
-  Profile:     '👤',
-  Security:    '🔒',
-  Preferences: '⚙️',
-}
+// ─── Profile Tab ───
 
-// ─── Profile Tab ────────────────────────────────────────────────────────────
 function ProfileTab() {
   const { user } = useAuth()
-
   return (
     <div className={styles.section}>
       <div className={styles.avatarRow}>
-        <div className={styles.avatar}>
-          {(user?.name ?? '?')[0].toUpperCase()}
-        </div>
+        <div className={styles.avatar}>{(user?.name ?? '?')[0].toUpperCase()}</div>
         <div>
           <div className={styles.avatarName}>{user?.name ?? '—'}</div>
           <div className={styles.avatarRole}>{user?.role?.replace('_', ' ') ?? '—'}</div>
         </div>
       </div>
-
       <div className={styles.infoGrid}>
-        <InfoRow label="Full Name"    value={user?.name ?? '—'} />
-        <InfoRow label="Email"        value={user?.email ?? '—'} />
-        <InfoRow label="Role"         value={user?.role?.replace('_', ' ') ?? '—'} />
-        <InfoRow label="Department"   value={user?.department_name ?? 'Not assigned'} />
-        <InfoRow label="Account ID"   value={`#${user?.id ?? '—'}`} mono />
-        <InfoRow label="Status"       value={user?.is_active !== 0 ? 'Active' : 'Inactive'} />
+        <InfoRow label="Full Name"  value={user?.name ?? '—'} />
+        <InfoRow label="Email"      value={user?.email ?? '—'} />
+        <InfoRow label="Role"       value={user?.role?.replace('_', ' ') ?? '—'} />
+        <InfoRow label="Department" value={user?.department_name ?? 'Not assigned'} />
+        <InfoRow label="Account ID" value={`#${user?.id ?? '—'}`} mono />
+        <InfoRow label="Status"     value={user?.is_active !== 0 ? 'Active' : 'Inactive'} />
       </div>
-
       <p className={styles.hint}>
         To update your name, email, or department, contact your administrator.
       </p>
@@ -80,7 +72,8 @@ function ProfileTab() {
   )
 }
 
-// ─── Security Tab ────────────────────────────────────────────────────────────
+// ─── Security Tab ───
+
 function SecurityTab() {
   const [current,  setCurrent]  = useState('')
   const [next,     setNext]     = useState('')
@@ -89,9 +82,9 @@ function SecurityTab() {
   const [showCurr, setShowCurr] = useState(false)
   const [showNext, setShowNext] = useState(false)
 
-  const valid = current.length > 0 && next.length >= 8 && next === confirm
   const mismatch = confirm.length > 0 && next !== confirm
   const tooShort = next.length > 0 && next.length < 8
+  const valid    = current.length > 0 && next.length >= 8 && next === confirm
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -110,7 +103,6 @@ function SecurityTab() {
     <div className={styles.section}>
       <h2 className={styles.sectionTitle}>Change Password</h2>
       <p className={styles.sectionDesc}>Use a strong password with at least 8 characters.</p>
-
       <form className={styles.form} onSubmit={handleSubmit}>
         <Field label="Current Password">
           <div className={styles.inputWrap}>
@@ -142,9 +134,7 @@ function SecurityTab() {
               {showNext ? '🙈' : '👁️'}
             </button>
           </div>
-          {next.length >= 8 && (
-            <StrengthBar password={next} />
-          )}
+          {next.length >= 8 && <StrengthBar password={next} />}
         </Field>
 
         <Field label="Confirm New Password" hint={mismatch ? 'Passwords do not match' : undefined}>
@@ -159,11 +149,7 @@ function SecurityTab() {
         </Field>
 
         <div className={styles.formActions}>
-          <button
-            type="submit"
-            className={styles.saveBtn}
-            disabled={!valid || saving}
-          >
+          <button type="submit" className={styles.saveBtn} disabled={!valid || saving}>
             {saving ? <Spinner size="sm" /> : null}
             {saving ? 'Saving…' : 'Change Password'}
           </button>
@@ -173,11 +159,12 @@ function SecurityTab() {
   )
 }
 
-// ─── Preferences Tab ─────────────────────────────────────────────────────────
+// ─── Preferences Tab ───
+
 function PreferencesTab() {
   const [emailNotifs, setEmailNotifs] = useState(true)
   const [desktopPush, setDesktopPush] = useState(false)
-  const [density,     setDensity]     = useState<'comfortable' | 'compact'>('comfortable')
+  const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable')
 
   return (
     <div className={styles.section}>
@@ -217,7 +204,6 @@ function PreferencesTab() {
           </div>
         </div>
       </div>
-
       <p className={styles.hint} style={{ marginTop: '2rem' }}>
         These preferences are saved locally. Backend preference sync coming soon.
       </p>
@@ -225,7 +211,8 @@ function PreferencesTab() {
   )
 }
 
-// ─── Reusable sub-components ─────────────────────────────────────────────────
+// ─── Reusable sub-components ───
+
 function InfoRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className={styles.infoRow}>
@@ -269,10 +256,10 @@ function PrefToggle({ label, description, value, onChange }: {
 
 function StrengthBar({ password }: { password: string }) {
   let score = 0
-  if (password.length >= 8)  score++
-  if (password.length >= 12) score++
-  if (/[A-Z]/.test(password)) score++
-  if (/[0-9]/.test(password)) score++
+  if (password.length >= 8)          score++
+  if (password.length >= 12)         score++
+  if (/[A-Z]/.test(password))        score++
+  if (/[0-9]/.test(password))        score++
   if (/[^A-Za-z0-9]/.test(password)) score++
 
   const level = score <= 2 ? 'weak' : score <= 3 ? 'fair' : 'strong'
