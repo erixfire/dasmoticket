@@ -67,11 +67,6 @@ export default function TicketsPage() {
       <PageHeader
         title="Tickets"
         subtitle={`${total} ticket${total !== 1 ? 's' : ''} total`}
-        actions={
-          <button onClick={() => setShowCreate(true)} className={styles.createBtn}>
-            + New Ticket
-          </button>
-        }
       />
 
       <TicketFilters
