@@ -1,64 +1,55 @@
 import type { Env } from '../../_middleware'
+import { verifyPassword, signJWT } from '../../lib/crypto'
+import { getUserByEmail } from '../../lib/db'
+import { jsonResponse, errorResponse, optionsResponse } from '../../lib/response'
+import { logAudit } from '../../lib/db'
+
+const TOKEN_TTL = 60 * 60 * 8 // 8 hours
 
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': ctx.env.CORS_ORIGIN || '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Content-Type': 'application/json',
-  }
-
+  const origin = ctx.env.CORS_ORIGIN || '*'
   try {
-    const { email, password } = await ctx.request.json() as { email: string; password: string }
+    const body = await ctx.request.json() as { email?: string; password?: string }
+    const { email, password } = body
 
     if (!email || !password) {
-      return new Response(JSON.stringify({ success: false, error: 'Email and password are required' }), { status: 400, headers: corsHeaders })
+      return errorResponse('Email and password are required', 400, origin)
     }
 
-    const user = await ctx.env.DB.prepare(
-      `SELECT u.*, d.name as department_name
-       FROM users u
-       LEFT JOIN departments d ON u.department_id = d.id
-       WHERE u.email = ? AND u.is_active = 1`
-    ).bind(email).first() as Record<string, unknown> | null
+    const user = await getUserByEmail(ctx.env.DB, email.toLowerCase().trim())
 
-    if (!user) {
-      return new Response(JSON.stringify({ success: false, error: 'Invalid email or password' }), { status: 401, headers: corsHeaders })
+    // Use consistent timing to prevent email enumeration
+    const passwordMatch = user
+      ? await verifyPassword(password, user.password_hash)
+      : await verifyPassword(password, 'dummy:0000000000000000000000000000000000000000000000000000000000000000')
+
+    if (!user || !passwordMatch) {
+      return errorResponse('Invalid email or password', 401, origin)
     }
 
-    // NOTE: In production use bcrypt via a Worker with proper crypto.
-    // For Phase 1 baseline, we do a simple comparison.
-    // Replace this with proper bcrypt verification in Phase 2.
-    const passwordMatch = password === 'admin123' // TEMPORARY - Phase 2 will use proper hashing
-
-    if (!passwordMatch) {
-      return new Response(JSON.stringify({ success: false, error: 'Invalid email or password' }), { status: 401, headers: corsHeaders })
+    const now = Math.floor(Date.now() / 1000)
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      iat: now,
+      exp: now + TOKEN_TTL,
     }
 
-    // Simple JWT-like token (Phase 2 will implement proper JWT)
-    const tokenPayload = { id: user.id, email: user.email, role: user.role, iat: Date.now() }
-    const token = btoa(JSON.stringify(tokenPayload))
+    const token = await signJWT(payload, ctx.env.JWT_SECRET)
+
+    const ip = ctx.request.headers.get('CF-Connecting-IP')
+    await logAudit(ctx.env.DB, user.id, 'LOGIN', 'users', user.id, null, null, ip)
 
     const { password_hash, ...safeUser } = user
     void password_hash
 
-    return new Response(JSON.stringify({
-      success: true,
-      data: { token, user: safeUser }
-    }), { status: 200, headers: corsHeaders })
-
+    return jsonResponse({ token, user: safeUser, expires_in: TOKEN_TTL }, 200, origin)
   } catch (err) {
-    return new Response(JSON.stringify({ success: false, error: 'Internal server error' }), { status: 500, headers: corsHeaders })
+    console.error('Login error:', err)
+    return errorResponse('Internal server error', 500, origin)
   }
 }
 
-export const onRequestOptions: PagesFunction<Env> = async (ctx) => {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': ctx.env.CORS_ORIGIN || '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    }
-  })
-}
+export const onRequestOptions: PagesFunction<Env> = async (ctx) =>
+  optionsResponse(ctx.env.CORS_ORIGIN || '*')

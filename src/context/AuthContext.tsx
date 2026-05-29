@@ -1,12 +1,13 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import type { User } from '@/types'
+import { api } from '@/lib/api'
 
 interface AuthContextValue {
-  user: User | null;
-  token: string | null;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-  isLoading: boolean;
+  user: User | null
+  token: string | null
+  login: (email: string, password: string) => Promise<void>
+  logout: () => void
+  isLoading: boolean
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -17,27 +18,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const stored = localStorage.getItem('dasmoticket_token')
+    const storedToken = localStorage.getItem('dasmoticket_token')
     const storedUser = localStorage.getItem('dasmoticket_user')
-    if (stored && storedUser) {
-      setToken(stored)
+    if (storedToken && storedUser) {
+      setToken(storedToken)
       setUser(JSON.parse(storedUser))
     }
     setIsLoading(false)
   }, [])
 
   const login = async (email: string, password: string) => {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error || 'Login failed')
-    setToken(data.data.token)
-    setUser(data.data.user)
-    localStorage.setItem('dasmoticket_token', data.data.token)
-    localStorage.setItem('dasmoticket_user', JSON.stringify(data.data.user))
+    const res = await api.auth.login(email, password)
+    setToken(res.data.token)
+    setUser(res.data.user)
+    localStorage.setItem('dasmoticket_token', res.data.token)
+    localStorage.setItem('dasmoticket_user', JSON.stringify(res.data.user))
   }
 
   const logout = () => {
